@@ -1,0 +1,25 @@
+package net.niliota.fnfmod.Charting;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class Chart {
+    public double bpm;
+    public double scrollSpeed;
+    public List<ChartNote> notes = new ArrayList<>();
+
+    public Chart(double scrollSpeed, List<ChartNote> notes, int bpm) {
+        this.scrollSpeed = scrollSpeed;
+        this.notes = notes;
+        this.bpm = bpm;
+    }
+
+    @Override
+    public String toString() {
+        return "Chart{" +
+                "bpm=" + bpm +
+                ", speed=" + scrollSpeed +
+                ", notes=" + notes +
+                '}';
+    }
+}

@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "fnfmod",
+	"version": "${version}",
+	"name": "FNFmod",
+	"description": "Funkin' on a Blocky Friday, yeah!",
+	"authors": [
+		"niliota"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/fnfmod/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+          "net.niliota.fnfmod.FNFmod"
+		],
+		"client": [
+			"net.niliota.fnfmod.FNFmodClient"
+		]
+	},
+	"mixins": [
+		"fnfmod.mixins.json",
+		{
+			"config": "fnfmod.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
