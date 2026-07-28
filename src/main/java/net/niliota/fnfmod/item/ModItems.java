@@ -9,10 +9,10 @@ import net.minecraft.world.item.Item;
 
 public class ModItems {
 
-    // 1. Create your item
+    // 1. Create the item(s)
     public static final Item MIC = registerItem("mic", new Item(new Item.Properties()));
 
-    // A helper method to register items using Mojang mappings
+    // A helper method to register items using Mojang mappings (instead of Yarn)
     private static Item registerItem(String name, Item item) {
         return Registry.register(
                 BuiltInRegistries.ITEM,
@@ -23,7 +23,7 @@ public class ModItems {
 
     public static void registerModItems() {
         // 2. Add the item to an existing Creative Mode tab (e.g., INGREDIENTS)
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS).register(entries -> {
+        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> {
             entries.accept(MIC);
         });
     }
