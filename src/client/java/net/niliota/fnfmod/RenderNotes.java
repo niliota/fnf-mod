@@ -85,7 +85,7 @@ public class RenderNotes {
             for (int lane = 0; lane < 4; lane++) {
                 boolean justHit = Gameplay.songPosition - Gameplay.lastHitTime[lane] < 150;
                 if (Gameplay.running && (justHit || Gameplay.holding[lane])) {
-                    int glowSize = Math.round(32 * 205f / 156f); // the glowing sprite is bigger than a normal arrow
+                    int glowSize = Math.round(32 * 208f / 160f); // the glowing sprite is bigger than a normal arrow
                     int offset = (glowSize - 32) / 2;
                     Arrow.glow(lane).draw(context, noteSpriteAtlas, Gameplay.laneX(lane) - offset, y - offset, glowSize, glowSize);
                 }
@@ -100,7 +100,7 @@ public class RenderNotes {
                     int laneX = Gameplay.opponentLaneX(lane);
                     boolean justHit = Gameplay.songPosition - Gameplay.opponentLastHitTime[lane] < 150;
                     if (Gameplay.running && (justHit || Gameplay.opponentHolding[lane])) {
-                        int glowSize = Math.round(32 * 205f / 156f);
+                        int glowSize = Math.round(32 * 208f / 160f);
                         int offset = (glowSize - 32) / 2;
                         Arrow.glow(lane).draw(context, noteSpriteAtlas, laneX - offset, y - offset, glowSize, glowSize);
                     } else if (Gameplay.vs && ClientVs.rivalKeysDown[lane]) {

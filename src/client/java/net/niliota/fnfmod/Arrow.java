@@ -3,41 +3,44 @@ package net.niliota.fnfmod;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 
+// The note sprites, all on one spritesheet (assets/fnfmod/note_assets.png, made by tools/make_note_sprites.py).
+// Each one is a rectangle on the sheet: x, y, width, height.
 public enum Arrow {
-    LEFT  (0,   398, 156, 153),
-    DOWN  (0,   240, 156, 153),
-    UP    (162, 240, 156, 153),
-    RIGHT (646, 397, 156, 153),
+    LEFT  (0,   0, 160, 160),
+    DOWN  (160, 0, 160, 160),
+    UP    (320, 0, 160, 160),
+    RIGHT (480, 0, 160, 160),
 
     // "Empty"
-    E_LEFT  (489, 238, 156, 153),
-    E_DOWN  (646, 239, 156, 153),
-    E_UP    (323, 240, 156, 153),
-    E_RIGHT (809, 238, 156, 153),
+    E_LEFT  (0,   160, 160, 160),
+    E_DOWN  (160, 160, 160, 160),
+    E_UP    (320, 160, 160, 160),
+    E_RIGHT (480, 160, 160, 160),
 
     // "Empty Pressed"
-    EP_LEFT  (1897, 150, 156, 153),
-    EP_DOWN  (1898, 0, 156, 153),
-    EP_UP    (158, 399, 156, 153),
-    EP_RIGHT (315, 399, 156, 153),
+    EP_LEFT  (0,   320, 160, 160),
+    EP_DOWN  (160, 320, 160, 160),
+    EP_UP    (320, 320, 160, 160),
+    EP_RIGHT (480, 320, 160, 160),
 
-    // "Glowing""
-    G_LEFT  (982, 12, 205, 201),
-    G_DOWN  (14,  10, 205, 201),
-    G_UP    (506, 12, 205, 201),
-    G_RIGHT (1678,13, 205, 201),
+    // "Glowing" (bigger frames, the glow goes around the arrow)
+    G_LEFT  (0,   480, 208, 208),
+    G_DOWN  (208, 480, 208, 208),
+    G_UP    (416, 480, 208, 208),
+    G_RIGHT (624, 480, 208, 208),
 
     // Hold pieces (stretched along the tail) and hold ends (the bottom of the tail).
-    // Positions are from the base game's NOTE_assets.xml, which uses the same spritesheet.
-    HOLD_LEFT  (1337, 457, 51, 44),
-    HOLD_DOWN  (1282, 457, 51, 44),
-    HOLD_UP    (1227, 457, 51, 44),
-    HOLD_RIGHT (1172, 457, 51, 44),
+    HOLD_LEFT  (0,   700, 52, 44),
+    HOLD_DOWN  (60,  700, 52, 44),
+    HOLD_UP    (120, 700, 52, 44),
+    HOLD_RIGHT (180, 700, 52, 44),
 
-    HOLD_END_LEFT  (1117, 452, 51, 64),
-    HOLD_END_DOWN  (1062, 452, 51, 64),
-    HOLD_END_UP    (1007, 452, 51, 64),
-    HOLD_END_RIGHT (952,  452, 51, 64);
+    HOLD_END_LEFT  (260, 700, 52, 64),
+    HOLD_END_DOWN  (320, 700, 52, 64),
+    HOLD_END_UP    (380, 700, 52, 64),
+    HOLD_END_RIGHT (440, 700, 52, 64);
+
+    public static final int TEXTURE_WIDTH = 1024, TEXTURE_HEIGHT = 1024; // size of the whole spritesheet
 
     public final int spriteX, spriteY, regionWidth, regionHeight;
 
@@ -51,17 +54,17 @@ public enum Arrow {
     // The function used to draw a sprite can just be called from this enum here.
     public void draw(GuiGraphics context, ResourceLocation texture, int x, int y) {
         // texture, x, y, width, height, u, v, regionWidth, regionHeight, textureWidth, textureHeight
-        context.blit(texture, x, y, 32, 32, spriteX, spriteY, regionWidth, regionHeight, 2048, 1024);
+        context.blit(texture, x, y, 32, 32, spriteX, spriteY, regionWidth, regionHeight, TEXTURE_WIDTH, TEXTURE_HEIGHT);
     }
 
     // Same as draw(), but with any size on screen. Used for glowing arrows and for stretching hold pieces.
     public void draw(GuiGraphics context, ResourceLocation texture, int x, int y, int width, int height) {
-        context.blit(texture, x, y, width, height, spriteX, spriteY, regionWidth, regionHeight, 2048, 1024);
+        context.blit(texture, x, y, width, height, spriteX, spriteY, regionWidth, regionHeight, TEXTURE_WIDTH, TEXTURE_HEIGHT);
     }
 
     // Upside down (downscroll hold ends): the sprite is read from its bottom to its top.
     public void drawFlipped(GuiGraphics context, ResourceLocation texture, int x, int y, int width, int height) {
-        context.blit(texture, x, y, width, height, spriteX, spriteY + regionHeight, regionWidth, -regionHeight, 2048, 1024);
+        context.blit(texture, x, y, width, height, spriteX, spriteY + regionHeight, regionWidth, -regionHeight, TEXTURE_WIDTH, TEXTURE_HEIGHT);
     }
 
     // Lane number (0=left, 1=down, 2=up, 3=right) to the right sprite.

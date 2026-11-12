@@ -54,9 +54,9 @@ public class Gameplay {
     public static final int OFFSET_FROM_BOTTOM = 52; // downscroll: stays above the hotbar, hearts and armor
     public static final int GAP_BETWEEN_SIDES = 16; // space between the player's and the opponent's strums
 
-    // hold tails are thinner than notes, same proportions as in FNF (hold piece is 51px wide, a note is 156px)
-    private static final int HOLD_WIDTH = Math.round(NOTE_SIZE * 51f / 156f);
-    private static final int HOLD_END_HEIGHT = Math.round(HOLD_WIDTH * 64f / 51f);
+    // hold tails are thinner than notes, same proportions as on the spritesheet (hold piece is 52px wide, a note is 160px)
+    private static final int HOLD_WIDTH = Math.round(NOTE_SIZE * 52f / 160f);
+    private static final int HOLD_END_HEIGHT = Math.round(HOLD_WIDTH * 64f / 52f);
 
     // per lane: song time of the last hit, and if a hold is being held (both make the strum glow)
     public static double[] lastHitTime = new double[4];
