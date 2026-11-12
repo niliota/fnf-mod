@@ -28,6 +28,16 @@ loom {
 		}
 	}
 
+	runs {
+		// A second client with its own (empty) fnfpacks folder, to test a server sending songs to a player who doesn't have them.
+		// ./gradlew runClientNoPacks
+		clientNoPacks {
+			client()
+			name "Minecraft Client (no packs)"
+			runDir "run-client2"
+		}
+	}
+
 }
 
 dependencies {

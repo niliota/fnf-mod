@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 import net.niliota.fnfmod.Audio.AudioManager;
 import net.niliota.fnfmod.Audio.AudioTrack;
 import net.niliota.fnfmod.Screens.PackSelectScreen;
+import net.niliota.fnfmod.network.ClientNetworking;
 import org.lwjgl.glfw.GLFW;
 
 public class FNFmodClient implements ClientModInitializer {
@@ -37,10 +38,13 @@ public class FNFmodClient implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (FNFmodClient.menuKey.consumeClick()) {
 				client.setScreen(
-						new PackSelectScreen(Component.empty(), PackManager.packs)
+						new PackSelectScreen(Component.empty())
 				);
 			}
 		});
+
+		// Receiving songs from the server
+		ClientNetworking.init();
 
 		RenderNotes.render();
 		// We initialize/register the HUDRenderCallback thing only once here, since it cannot be unregistered ever again.

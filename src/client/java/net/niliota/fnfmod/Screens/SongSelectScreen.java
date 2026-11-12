@@ -7,18 +7,21 @@ import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.niliota.fnfmod.Audio.AudioManager;
-import net.niliota.fnfmod.FNFSong;
 import net.niliota.fnfmod.Gameplay;
+import net.niliota.fnfmod.network.SongCatalogPayload;
 
 import java.util.List;
 
+// Second menu: lists the songs of the pack chosen in PackSelectScreen.
 public class SongSelectScreen extends Screen {
-    public List<FNFSong> songs;
+    public int packId;
+    public List<SongCatalogPayload.SongEntry> songs;
     private int scrollOffset = 0;
 
 
-    public SongSelectScreen(Component title, List<FNFSong> songs) {
+    public SongSelectScreen(Component title, int packId, List<SongCatalogPayload.SongEntry> songs) {
         super(title);
+        this.packId = packId;
         this.songs = songs;
     }
 
@@ -30,16 +33,19 @@ public class SongSelectScreen extends Screen {
     public void rebuildButtons() {
         this.clearWidgets();
         int x = 40; int y = 40 - scrollOffset;
-        for (FNFSong song : songs) {
-            Button songButton = Button.builder(Component.nullToEmpty(song.name), (btn) -> {
+        for (int i = 0; i < songs.size(); i++) {
+            SongCatalogPayload.SongEntry song = songs.get(i);
+            int songId = i; // the server knows songs by their position in the list
+
+            Button songButton = Button.builder(Component.nullToEmpty(song.name()), (btn) -> {
                 // When the button is clicked, we can display a toast to the screen.
                 this.minecraft.getToasts().addToast(
-                        SystemToast.multiline(this.minecraft, SystemToast.SystemToastId.NARRATOR_TOGGLE, Component.nullToEmpty(String.format("Opening %s!", song.name)), Component.nullToEmpty("This is a toast."))
+                        SystemToast.multiline(this.minecraft, SystemToast.SystemToastId.NARRATOR_TOGGLE, Component.nullToEmpty(String.format("Opening %s!", song.name())), Component.nullToEmpty("This is a toast."))
                 );
 
 //                if (song.audioVoicesFiles.toArray().length > 1 || song.audioInstFiles.toArray().length > 1) {
                     Minecraft.getInstance().setScreen(
-                            new SongOptionsScreen(Component.empty(), song)
+                            new SongOptionsScreen(Component.empty(), packId, songId, song)
                     );
 //                } else {
 //                    AudioManager.stopAllTracks();

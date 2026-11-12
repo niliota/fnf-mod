@@ -6,45 +6,49 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.niliota.fnfmod.Audio.AudioManager;
-import net.niliota.fnfmod.FNFPack;
+import net.niliota.fnfmod.ClientSongCatalog;
 import net.niliota.fnfmod.Gameplay;
+import net.niliota.fnfmod.network.SongCatalogPayload;
 
 import java.util.List;
 
+// First menu: lists the FNF mods (packs) the server has. Opened with the menu key (O).
 public class PackSelectScreen extends Screen {
-    public List<FNFPack> packs;
+    public List<SongCatalogPayload.PackEntry> packs;
 
 
-    public PackSelectScreen(Component title, List<FNFPack> packs) {
+    public PackSelectScreen(Component title) {
         super(title);
-        this.packs = packs;
+        this.packs = ClientSongCatalog.packs;
     }
 
     @Override
     protected void init() {
         int x = 40; int y = 40;
-        for (FNFPack pack : packs) {
-            Button packButton = Button.builder(Component.nullToEmpty(pack.name), (btn) -> {
+        for (int i = 0; i < packs.size(); i++) {
+            SongCatalogPayload.PackEntry pack = packs.get(i);
+            int packId = i; // the server knows packs by their position in the list
+
+            Button packButton = Button.builder(Component.nullToEmpty(pack.name()), (btn) -> {
                 // Open the song select screen using the pack's songs.
                 Minecraft.getInstance().setScreen(
-                        new SongSelectScreen(Component.empty(), pack.songs)
+                        new SongSelectScreen(Component.empty(), packId, pack.songs())
                 );
             }).bounds(x, y, 120, 20).build();
             // x, y, width, height
             // It's recommended to use the fixed height of 20 to prevent rendering issues with the button
             // textures.
 
-            Button stopButton = Button.builder(Component.nullToEmpty("Stop playing"), (btn) -> {
-                AudioManager.stopAllTracks();
-                Gameplay.stopGameplay();
-
-            }).bounds(200, 10, 120, 20).build();
-
-
             y += 20;
             this.addRenderableWidget(packButton);
-            this.addRenderableWidget(stopButton);
         }
+
+        Button stopButton = Button.builder(Component.nullToEmpty("Stop playing"), (btn) -> {
+            AudioManager.stopAllTracks();
+            Gameplay.stopGameplay();
+
+        }).bounds(200, 10, 120, 20).build();
+        this.addRenderableWidget(stopButton);
     }
 
     @Override
@@ -57,7 +61,12 @@ public class PackSelectScreen extends Screen {
         // textRenderer, text, x, y, color, hasShadow
         context.drawString(this.font, "Choose a FNF mod", 40, 40 - this.font.lineHeight - 10, 0xFFFFFFFF, true);
 
-
+        // let the player know why the list is empty
+        if (!ClientSongCatalog.received) {
+            context.drawString(this.font, "This server doesn't have FNFmod installed.", 40, 40, 0xFFFF5555, true);
+        } else if (packs.isEmpty()) {
+            context.drawString(this.font, "No packs found, put FNF mods into the fnfpacks folder.", 40, 40, 0xFFFF5555, true);
+        }
     }
 
 

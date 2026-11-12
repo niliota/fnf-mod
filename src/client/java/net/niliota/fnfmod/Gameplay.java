@@ -22,6 +22,7 @@ public class Gameplay {
         HudRenderCallback.EVENT.register((context, tickDelta) -> {
             // Stop running the main cycle if set to not running
             if (!running) return;
+            if (AudioManager.tracks.isEmpty()) return; // nothing to sync the notes to
 
             int screenWidth  = Minecraft.getInstance().getWindow().getGuiScaledWidth();
             int screenHeight = Minecraft.getInstance().getWindow().getGuiScaledHeight();

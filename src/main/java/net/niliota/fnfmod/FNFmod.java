@@ -3,6 +3,7 @@ package net.niliota.fnfmod;
 import net.fabricmc.api.ModInitializer;
 
 import net.niliota.fnfmod.item.ModItems;
+import net.niliota.fnfmod.network.ModPayloads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,10 @@ public class FNFmod implements ModInitializer {
 
 		// Initialize the items
 		ModItems.registerModItems();
+
+		// Networking: register all packets, then the server side of sending songs to players
+		ModPayloads.register();
+		SongSender.register();
 
 		LOGGER.info("Gonna FNF it so good!");
 		List<Path> packs = PackManager.findPacks();
