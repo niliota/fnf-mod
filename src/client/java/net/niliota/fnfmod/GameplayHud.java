@@ -4,6 +4,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
@@ -26,6 +27,11 @@ public class GameplayHud {
     private static Rating lastRating;
     private static int lastCombo;
     private static long lastRatingTime = 0;
+
+    // the rival's last rating popup (VS)
+    private static Rating rivalRating;
+    private static int rivalCombo;
+    private static long rivalRatingTime = 0;
 
     // the countdown before the music starts
     private static String countdownText;
@@ -65,18 +71,16 @@ public class GameplayHud {
                 context.drawCenteredString(font, rivalLine, screenWidth / 2, rivalY, 0xFFFF7777);
             }
 
-            // Rating popup, fades out
-            long age = System.currentTimeMillis() - lastRatingTime;
-            if (lastRating != null && age < POPUP_TIME) {
-                int alpha = (int)(255 * (1 - (double) age / POPUP_TIME));
-                alpha = Math.max(alpha, 0x10); // text with almost no alpha gets drawn fully visible, so stop a bit above 0
-                int color = (alpha << 24) | ratingColor(lastRating);
+            // Rating popups, under the middle of the strums (above them with downscroll), fading out
+            drawPopup(context, font, lastRating, lastCombo, lastRatingTime, Gameplay.laneX(0) + 2 * Gameplay.NOTE_SIZE);
 
-                // under the middle of the player's strums (above them with downscroll)
-                String text = lastRating.displayName + (lastCombo >= 2 ? " x" + lastCombo : "");
-                int textX = Gameplay.laneX(0) + 2 * Gameplay.NOTE_SIZE - font.width(text) / 2;
-                int textY = FnfOptions.downscroll ? Gameplay.strumY() - 8 - font.lineHeight : Gameplay.strumY() + Gameplay.NOTE_SIZE + 8;
-                context.drawString(font, text, textX, textY, color, true);
+            // VS: the rival's ratings under their strums (only when their strums are shown).
+            // With middle scroll their strums are split in two, so it goes under their left pair.
+            if (Gameplay.vs && FnfOptions.showOpponent) {
+                int rivalCenter = FnfOptions.middleScroll
+                        ? Gameplay.opponentLaneX(0) + Gameplay.NOTE_SIZE
+                        : Gameplay.opponentLaneX(0) + 2 * Gameplay.NOTE_SIZE;
+                drawPopup(context, font, rivalRating, rivalCombo, rivalRatingTime, rivalCenter);
             }
 
             // Countdown text, big in the middle of the screen. Over one beat it slowly grows and fades out.
@@ -125,7 +129,29 @@ public class GameplayHud {
     // after the pause menu: move the popup timers forward, so they continue where they stopped
     public static void shiftTimers(long ms) {
         lastRatingTime += ms;
+        rivalRatingTime += ms;
         countdownTime += ms;
+    }
+
+    // the rival hit a note (VS, from their game's events)
+    public static void showRivalRating(Rating rating, int combo) {
+        rivalRating = rating;
+        rivalCombo = combo;
+        rivalRatingTime = System.currentTimeMillis();
+    }
+
+    // "Sick!! x23" centered at centerX under (or above, with downscroll) the strums, fading out over POPUP_TIME
+    private static void drawPopup(GuiGraphics context, Font font, Rating rating, int combo, long shownAt, int centerX) {
+        long age = System.currentTimeMillis() - shownAt;
+        if (rating == null || age >= POPUP_TIME) return;
+
+        int alpha = (int)(255 * (1 - (double) age / POPUP_TIME));
+        alpha = Math.max(alpha, 0x10); // text with almost no alpha gets drawn fully visible, so stop a bit above 0
+        int color = (alpha << 24) | ratingColor(rating);
+
+        String text = rating.displayName + (combo >= 2 ? " x" + combo : "");
+        int textY = FnfOptions.downscroll ? Gameplay.strumY() - 8 - font.lineHeight : Gameplay.strumY() + Gameplay.NOTE_SIZE + 8;
+        context.drawString(font, text, centerX - font.width(text) / 2, textY, color, true);
     }
 
     public static void showRating(Rating rating, int combo) {

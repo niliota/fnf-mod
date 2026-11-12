@@ -51,11 +51,9 @@ class VsTest {
         VsPickPayload pick = new VsPickPayload(new RequestSongPayload(1, 2, List.of(0), List.of(0, 1), 3, -1), false);
         assertEquals(pick, roundTrip(VsPickPayload.CODEC, pick));
 
-        VsScorePayload myScore = new VsScorePayload(new VsScore(12345, 3, 0.9876, 210, VsScore.PLAYING));
+        VsScorePayload myScore = new VsScorePayload(new VsScore(12345, 3, 0.9876, 210, VsScore.FINISHED));
         assertEquals(myScore, roundTrip(VsScorePayload.CODEC, myScore));
 
-        VsRivalScorePayload rivalScore = new VsRivalScorePayload(new VsScore(1, 2, 0.5, 3, VsScore.GAVE_UP));
-        assertEquals(rivalScore, roundTrip(VsRivalScorePayload.CODEC, rivalScore));
 
         assertNotNull(roundTrip(VsReadyPayload.CODEC, new VsReadyPayload()));
 

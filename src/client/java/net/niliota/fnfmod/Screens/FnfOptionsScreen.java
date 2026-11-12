@@ -4,8 +4,10 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
+import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.niliota.fnfmod.Audio.AudioCache;
 import net.niliota.fnfmod.FnfCamera;
 import net.niliota.fnfmod.FnfOptions;
 
@@ -54,6 +56,20 @@ public class FnfOptionsScreen extends Screen {
                 () -> (FnfOptions.cameraDistance - FnfCamera.MIN_DISTANCE) / (FnfCamera.MAX_DISTANCE - FnfCamera.MIN_DISTANCE),
                 value -> FnfOptions.cameraDistance = Math.round((FnfCamera.MIN_DISTANCE + value * (FnfCamera.MAX_DISTANCE - FnfCamera.MIN_DISTANCE)) * 2) / 2.0,
                 () -> String.format(Locale.ROOT, "Camera distance: %.1f", FnfOptions.cameraDistance));
+        y += 30;
+
+        // Songs downloaded from servers (fnfcache/), with how much space they take. Asks before deleting.
+        long cacheSize = AudioCache.cacheSize();
+        Button clearCacheButton = Button.builder(Component.literal("Clear downloaded songs (" + formatSize(cacheSize) + ")"), btn ->
+                this.minecraft.setScreen(new ConfirmScreen(confirmed -> {
+                    if (confirmed) AudioCache.clear();
+                    this.minecraft.setScreen(this); // back here, the button shows the new size
+                }, Component.literal("Clear downloaded songs?"),
+                   Component.literal("This deletes " + formatSize(cacheSize) + " of songs downloaded from servers. "
+                           + "They'll be downloaded again the next time they're played.")))
+        ).bounds(x, y, WIDTH, 20).build();
+        clearCacheButton.active = cacheSize > 0;
+        this.addRenderableWidget(clearCacheButton);
         y += 34;
 
         this.addRenderableWidget(Button.builder(Component.literal("Done"), btn -> onClose())
@@ -75,6 +91,14 @@ public class FnfOptionsScreen extends Screen {
     @Override
     public void removed() {
         FnfOptions.save();
+    }
+
+    // 1536 -> "1.5 KB", 52428800 -> "50.0 MB"
+    private static String formatSize(long bytes) {
+        if (bytes <= 0) return "empty";
+        if (bytes < 1024 * 1024) return String.format(Locale.ROOT, "%.1f KB", bytes / 1024.0);
+        if (bytes < 1024L * 1024 * 1024) return String.format(Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024));
+        return String.format(Locale.ROOT, "%.2f GB", bytes / (1024.0 * 1024 * 1024));
     }
 
     private interface BooleanConsumer {

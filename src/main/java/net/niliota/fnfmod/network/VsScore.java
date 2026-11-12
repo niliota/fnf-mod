@@ -2,8 +2,8 @@ package net.niliota.fnfmod.network;
 
 import net.minecraft.network.FriendlyByteBuf;
 
-// How a player is doing in a VS match. Sent while playing (live score) and once more at the end.
-// status: PLAYING, FINISHED (the song ended) or GAVE_UP (stopped the song or left)
+// A player's final result in a VS match, sent once at the end (the live score comes from VsEvents instead).
+// status: FINISHED (the song ended) or GAVE_UP (stopped the song or left). PLAYING = no result yet.
 public record VsScore(int score, int misses, double accuracy, int maxCombo, int status) {
     public static final int PLAYING = 0, FINISHED = 1, GAVE_UP = 2;
 

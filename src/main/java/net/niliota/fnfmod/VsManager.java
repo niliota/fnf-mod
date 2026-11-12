@@ -19,7 +19,6 @@ import net.niliota.fnfmod.network.VsMatchPayload;
 import net.niliota.fnfmod.network.VsPickPayload;
 import net.niliota.fnfmod.network.VsReadyPayload;
 import net.niliota.fnfmod.network.VsRivalEventsPayload;
-import net.niliota.fnfmod.network.VsRivalScorePayload;
 import net.niliota.fnfmod.network.VsScore;
 import net.niliota.fnfmod.network.VsScorePayload;
 
@@ -36,8 +35,9 @@ import java.util.UUID;
 //                   They get a chat message with clickable [Accept] [Decline] (/fnfvs accept|decline <player>), valid for 30 s.
 //  2. picking     - both get the song menus, whoever picks a song first decides the song and their side.
 //  3. loading     - both get the song (same as a normal song request) and load it, then say they're ready.
-//  4. playing     - when both are ready, both countdowns start at the same time. Scores and every press/hit/miss
-//                   get passed between them, so each sees the other's side live.
+//  4. playing     - when both are ready, both countdowns start at the same time. Every press/hit/miss
+//                   gets passed between them, so each sees the other's side (and score) live.
+//                   Each player sends their final score at the end (or when they give up).
 //  5. results     - when both finished (or 15 s after the first one did), the higher score wins.
 //                   Stopping the song or leaving = losing, and ends the match right away.
 // /fnfvs cancel ends the match at any point.
@@ -174,7 +174,7 @@ public class VsManager {
         challenges.removeIf(c -> c.from().equals(player.getUUID()));
         Match match = matches.get(player.getUUID());
         if (match == null) return;
-        endMatch(match, player.getServer(), name(player) + " cancelled the VS match.");
+        endMatch(match, player.getServer(), name(player) + " cancelled the VS match.", false);
     }
 
     // ---- the match ----
@@ -229,10 +229,6 @@ public class VsManager {
         if (player.getUUID().equals(match.a)) match.aScore = score;
         else match.bScore = score;
 
-        // pass it on to the rival for their live display
-        ServerPlayer rival = player.getServer().getPlayerList().getPlayer(match.other(player.getUUID()));
-        if (rival != null) ServerPlayNetworking.send(rival, new VsRivalScorePayload(score));
-
         if (score.isDone() && match.firstDoneAt < 0) match.firstDoneAt = tick;
 
         // giving up ends the match right away, the rival doesn't have to keep playing for nothing
@@ -273,7 +269,7 @@ public class VsManager {
         if (match == null) return;
 
         if (match.state == State.PICKING) {
-            endMatch(match, server, name(player) + " left, the VS match is cancelled.");
+            endMatch(match, server, name(player) + " left, the VS match is cancelled.", false);
         } else {
             // leaving after a song was picked counts as losing
             if (player.getUUID().equals(match.a)) match.aScore = new VsScore(0, 0, 0, 0, VsScore.GAVE_UP);
@@ -292,16 +288,24 @@ public class VsManager {
         String message = "VS " + match.songName + ": " + verdict
                 + "\n" + scoreLine(aName, match.aScore)
                 + "\n" + scoreLine(bName, match.bScore);
-        endMatch(match, server, message);
+        endMatch(match, server, message, true);
     }
 
-    private static void endMatch(Match match, MinecraftServer server, String message) {
+    // rematch = a [Rematch] button after the result, which challenges the same rival again (they still have to accept)
+    private static void endMatch(Match match, MinecraftServer server, String message, boolean rematch) {
         matches.remove(match.a);
         matches.remove(match.b);
         for (UUID id : List.of(match.a, match.b)) {
             ServerPlayer p = server.getPlayerList().getPlayer(id);
             if (p == null) continue;
-            p.sendSystemMessage(text(message, ChatFormatting.AQUA));
+
+            MutableComponent text = text(message, ChatFormatting.AQUA);
+            ServerPlayer rival = server.getPlayerList().getPlayer(match.other(id));
+            if (rematch && rival != null) {
+                text.append(Component.literal("\n")).append(button("[Rematch]", ChatFormatting.GOLD,
+                        "/fnfvs challenge " + name(rival), "Challenge " + name(rival) + " again"));
+            }
+            p.sendSystemMessage(text);
             ServerPlayNetworking.send(p, new VsMatchPayload(VsMatchPayload.ENDED, nameOf(server, match.other(id)), match.other(id), true, match.songName));
         }
     }

@@ -23,10 +23,9 @@ public class ModPayloads {
         PayloadTypeRegistry.playC2S().register(AudioRequestPayload.TYPE, AudioRequestPayload.CODEC);
 
         // VS matches (see VsManager). Challenging/accepting/cancelling are commands (/fnfvs), so chat can have clickable buttons.
-        //  server -> client: VsMatchPayload (match state), VsRivalScorePayload (the rival's live score)
-        //  client -> server: VsPickPayload (song + side), VsReadyPayload (song loaded), VsScorePayload (my score)
+        //  server -> client: VsMatchPayload (match state)
+        //  client -> server: VsPickPayload (song + side), VsReadyPayload (song loaded), VsScorePayload (my final score)
         PayloadTypeRegistry.playS2C().register(VsMatchPayload.TYPE, VsMatchPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(VsRivalScorePayload.TYPE, VsRivalScorePayload.CODEC);
         PayloadTypeRegistry.playC2S().register(VsPickPayload.TYPE, VsPickPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(VsReadyPayload.TYPE, VsReadyPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(VsScorePayload.TYPE, VsScorePayload.CODEC);

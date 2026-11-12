@@ -99,4 +99,38 @@ public class AudioCache {
     public static void cancelAll() {
         downloads.clear();
     }
+
+    // How much space the downloaded songs take, in bytes (for the options screen)
+    public static long cacheSize() {
+        if (!Files.isDirectory(CACHE_DIR)) return 0;
+        long size = 0;
+        try (var files = Files.list(CACHE_DIR)) {
+            for (Path file : (Iterable<Path>) files::iterator) {
+                if (Files.isRegularFile(file)) size += Files.size(file);
+            }
+        } catch (IOException e) {
+            LOGGER.warn("Couldn't measure the song cache", e);
+        }
+        return size;
+    }
+
+    // Deletes every downloaded song. Songs that are playing keep playing, they're already loaded into memory.
+    // Returns how many files were deleted.
+    public static int clear() {
+        if (!Files.isDirectory(CACHE_DIR)) return 0;
+        int deleted = 0;
+        try (var files = Files.list(CACHE_DIR)) {
+            for (Path file : (Iterable<Path>) files::iterator) {
+                // only our own files (<hash>.ogg), nothing else that might have ended up in the folder
+                String name = file.getFileName().toString();
+                if (Files.isRegularFile(file) && name.endsWith(".ogg") && AudioHashes.isValidHash(name.substring(0, name.length() - 4))) {
+                    Files.delete(file);
+                    deleted++;
+                }
+            }
+        } catch (IOException e) {
+            LOGGER.warn("Couldn't clear the song cache", e);
+        }
+        return deleted;
+    }
 }
