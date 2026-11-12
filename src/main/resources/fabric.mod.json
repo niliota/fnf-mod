@@ -8,10 +8,11 @@
 		"niliota"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://github.com/niliota/fnf-mod",
+		"sources": "https://github.com/niliota/fnf-mod",
+		"issues": "https://github.com/niliota/fnf-mod/issues"
 	},
-	"license": "CC0-1.0",
+	"license": "GPL-3.0-or-later",
 	"icon": "assets/fnfmod/icon.png",
 	"environment": "*",
 	"entrypoints": {
