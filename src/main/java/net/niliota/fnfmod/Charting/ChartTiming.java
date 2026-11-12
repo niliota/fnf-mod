@@ -22,7 +22,7 @@ import java.util.List;
 //
 // If the chart is in a format none of these recognize, the bpm comes from ChartParser.getBpm() like before
 // (searching every file for a "bpm" key), so nothing that worked before loses its bpm.
-public class ChartTiming {
+public class    ChartTiming {
     // engines use 100 when a chart has no bpm at all (Codename's and V-Slice's DEFAULT_BPM)
     public static final double DEFAULT_BPM = 100;
     // a "Continuous BPM Change" longer than this many steps gets cut short, so a broken chart can't make thousands of changes

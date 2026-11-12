@@ -5,5 +5,6 @@
   "key.fnfmod.left": "Left Arrow",
   "key.fnfmod.down": "Down Arrow",
   "key.fnfmod.up": "Up Arrow",
-  "key.fnfmod.right": "Right Arrow"
+  "key.fnfmod.right": "Right Arrow",
+  "key.fnfmod.camera": "FNF Camera (side view)"
 }

@@ -22,6 +22,7 @@ public class FNFmodClient implements ClientModInitializer {
 	public static KeyMapping downKey;
 	public static KeyMapping upKey;
 	public static KeyMapping rightKey;
+	public static KeyMapping cameraKey;
 
 	// NoteManager Instance (maybe it shouldn't have one (prob should for multiplayer))
 	public static NoteManager noteManager = new NoteManager();
@@ -34,6 +35,15 @@ public class FNFmodClient implements ClientModInitializer {
 		downKey  = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.fnfmod.down",  InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_DOWN,  "category.fnfmod.keys"));
 		upKey    = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.fnfmod.up",    InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UP,    "category.fnfmod.keys"));
 		rightKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.fnfmod.right", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT, "category.fnfmod.keys"));
+
+		// FNF camera (side view), toggled with V by default, only while a song is playing
+		cameraKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.fnfmod.camera", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.fnfmod.keys"));
+		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			while (cameraKey.consumeClick()) {
+				if (Gameplay.running) FnfCamera.toggle();
+			}
+			FnfCamera.tick(client);
+		});
 
 
 		// Right-clicking with the Mic opens the menu. PASS lets the item do its own thing too (sound, cooldown).

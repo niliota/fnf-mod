@@ -2,7 +2,9 @@
 	"required": true,
 	"package": "net.niliota.fnfmod.mixin.client",
 	"compatibilityLevel": "JAVA_21",
-	"client": [],
+	"client": [
+		"CameraMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}

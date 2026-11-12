@@ -1,10 +1,12 @@
 package net.niliota.fnfmod.Screens;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.niliota.fnfmod.FnfCamera;
 import net.niliota.fnfmod.Gameplay;
 import net.niliota.fnfmod.network.ClientNetworking;
 import net.niliota.fnfmod.network.RequestSongPayload;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -137,6 +140,34 @@ public class SongOptionsScreen extends Screen {
                 .onValueChange((checkbox, value) -> Gameplay.showOpponent = value)
                 .build();
         this.addRenderableWidget(opponentCheckbox);
+
+        // FNF camera: side view while the song plays (can also be toggled during a song with its key, V by default)
+        Checkbox cameraCheckbox = Checkbox.builder(Component.literal("FNF camera"), this.font)
+                .pos(200, 100)
+                .selected(Gameplay.fnfCamera)
+                .onValueChange((checkbox, value) -> Gameplay.fnfCamera = value)
+                .build();
+        this.addRenderableWidget(cameraCheckbox);
+
+        // How far the FNF camera is from the player
+        double sliderValue = (FnfCamera.distance - FnfCamera.MIN_DISTANCE) / (FnfCamera.MAX_DISTANCE - FnfCamera.MIN_DISTANCE);
+        AbstractSliderButton distanceSlider = new AbstractSliderButton(200, 122, 120, 20, Component.empty(), sliderValue) {
+            {
+                updateMessage();
+            }
+
+            @Override
+            protected void updateMessage() {
+                setMessage(Component.literal(String.format(Locale.ROOT, "Camera distance: %.1f", FnfCamera.distance)));
+            }
+
+            @Override
+            protected void applyValue() {
+                double blocks = FnfCamera.MIN_DISTANCE + value * (FnfCamera.MAX_DISTANCE - FnfCamera.MIN_DISTANCE);
+                FnfCamera.distance = Math.round(blocks * 2) / 2.0; // steps of half a block
+            }
+        };
+        this.addRenderableWidget(distanceSlider);
     }
 
     @Override

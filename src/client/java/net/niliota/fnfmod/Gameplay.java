@@ -37,6 +37,7 @@ public class Gameplay {
     public static boolean noFail = false;       // health running out doesn't end the song
     public static boolean middleScroll = false; // player's strums in the middle of the screen
     public static boolean showOpponent = false; // show the opponent's strums and notes too
+    public static boolean fnfCamera = false;    // switch to the side view camera while a song plays
 
     // Main spritesheet
     private static final ResourceLocation noteSpriteAtlas = ResourceLocation.fromNamespaceAndPath("fnfmod", "note_assets.png");
@@ -274,6 +275,8 @@ public class Gameplay {
 
         RenderNotes.visible = true;
         Gameplay.running = true;
+
+        if (fnfCamera) FnfCamera.songStarted();
     }
 
     // The music ended by itself, show how it went.
@@ -297,5 +300,7 @@ public class Gameplay {
         opponentJudge = null;
         musicStarted = false;
         tracksToStart = null;
+
+        FnfCamera.songEnded(); // back to first person if the FNF camera was on
     }
 }
