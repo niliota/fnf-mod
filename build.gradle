@@ -41,6 +41,14 @@ dependencies {
 
 	implementation 'com.googlecode.soundlibs:vorbisspi:1.0.3.3'
 	implementation 'org.json:json:20231013'
+
+	// Unit tests (./gradlew test)
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+	useJUnitPlatform()
 }
 
 processResources {

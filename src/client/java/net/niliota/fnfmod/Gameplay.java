@@ -7,8 +7,6 @@ import net.niliota.fnfmod.Audio.AudioManager;
 import net.niliota.fnfmod.Charting.Chart;
 import net.niliota.fnfmod.Charting.ChartNote;
 
-import static net.niliota.fnfmod.FNFmod.LOGGER;
-
 public class Gameplay {
     public static boolean running = false;
     public static Chart currentChart;
@@ -24,8 +22,6 @@ public class Gameplay {
         HudRenderCallback.EVENT.register((context, tickDelta) -> {
             // Stop running the main cycle if set to not running
             if (!running) return;
-
-            LOGGER.info("notes rendering, track pos: " + AudioManager.tracks.get(0).getPositionMs());
 
             int screenWidth  = Minecraft.getInstance().getWindow().getGuiScaledWidth();
             int screenHeight = Minecraft.getInstance().getWindow().getGuiScaledHeight();
@@ -44,6 +40,8 @@ public class Gameplay {
             long currentMs = AudioManager.tracks.get(0).getPositionMs(); // Used to sync the note time with the song's
 
             for (ChartNote note : currentChart.notes) {
+                if (!note.isPlayer) continue; // only the player's side is drawn for now
+
                 double timeUntilHit = note.time - currentMs;
 
                 if (timeUntilHit > 2000 || timeUntilHit < -500) continue;

@@ -18,6 +18,8 @@ public class AudioManager {
         for (AudioTrack track : tracks) {
             track.destroy();
         }
+        // forget the destroyed tracks, otherwise the next song would read its timing from a dead track
+        tracks.clear();
     }
 
     // to play multiple audio tracks at the same instant
