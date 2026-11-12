@@ -23,6 +23,13 @@ public class NoteJudge {
     // every note before this one is done, so we don't have to look at them anymore
     private int firstActive = 0;
 
+    // Told about misses and dropped holds as they happen (VS sends them to the rival, see ClientVs)
+    public interface Listener {
+        void onMiss(JudgedNote note);
+        void onHoldDropped(JudgedNote note);
+    }
+    public Listener listener;
+
     // playerSide = true to play boyfriend's notes, false for the opponent's
     public NoteJudge(List<ChartNote> chartNotes, boolean playerSide, double bpm) {
         this(chartNotes, playerSide, bpm, List.of());
@@ -39,6 +46,9 @@ public class NoteJudge {
             notes.add(new JudgedNote(note, stepCrochet));
         }
         notes.sort((a, b) -> Double.compare(a.note.time, b.note.time));
+
+        // number the notes, so two players' games can talk about the same note (VS)
+        for (int i = 0; i < notes.size(); i++) notes.get(i).index = i;
     }
 
     // A key was pressed. Returns the note that got hit, or null if nothing was there.
@@ -97,6 +107,7 @@ public class NoteJudge {
                 // a missed hold costs more the longer it is (guitar hero sustains)
                 stats.miss(PlayStats.MISS_HEALTH * (n.pieceCount + 1));
                 removeDuplicates(n);
+                if (listener != null) listener.onMiss(n);
             }
 
             // hold pieces, in order
@@ -110,6 +121,7 @@ public class NoteJudge {
                     // let go too early and didn't press again in time, the rest of the tail is dead
                     n.missed = true;
                     stats.miss(PlayStats.MISS_HEALTH);
+                    if (listener != null) listener.onHoldDropped(n);
                 } else {
                     break; // can still be saved by pressing the key again
                 }
@@ -120,6 +132,51 @@ public class NoteJudge {
         while (firstActive < notes.size() && notes.get(firstActive).isDone()) {
             firstActive++;
         }
+    }
+
+    // ---- the rival's side in VS ----
+    // Their game decides what happened and sends it over, these just apply it. Nothing here decides a miss by itself,
+    // so a hit that arrives a bit late over the network never shows up as a fake miss.
+
+    public JudgedNote applyHit(int index, Rating rating) {
+        JudgedNote n = noteAt(index);
+        if (n == null || n.hit || n.missed) return null;
+        n.hit = true;
+        n.rating = rating;
+        stats.hit(rating);
+        removeDuplicates(n);
+        return n;
+    }
+
+    public void applyMiss(int index) {
+        JudgedNote n = noteAt(index);
+        if (n == null || n.hit || n.missed) return;
+        n.missed = true;
+        stats.miss(PlayStats.MISS_HEALTH * (n.pieceCount + 1));
+        removeDuplicates(n);
+    }
+
+    public void applyHoldDropped(int index) {
+        JudgedNote n = noteAt(index);
+        if (n == null || !n.hit || n.missed) return;
+        n.missed = true;
+        stats.miss(PlayStats.MISS_HEALTH);
+    }
+
+    // Every frame: holds that were hit keep going until their end, unless a "dropped" comes in.
+    public void remoteUpdate(double songPosition) {
+        for (int i = firstActive; i < notes.size(); i++) {
+            JudgedNote n = notes.get(i);
+            if (n.note.time > songPosition) break;
+            while (n.isBeingHeld() && n.pieceTime(n.piecesHit) <= songPosition) n.piecesHit++;
+        }
+        while (firstActive < notes.size() && notes.get(firstActive).isDone()) {
+            firstActive++;
+        }
+    }
+
+    private JudgedNote noteAt(int index) {
+        return index >= 0 && index < notes.size() ? notes.get(index) : null;
     }
 
     // Some charts have the same note twice on top of each other. Psych throws the extra ones away

@@ -67,6 +67,7 @@ public enum Arrow {
     // Lane number (0=left, 1=down, 2=up, 3=right) to the right sprite.
     public static Arrow note(int lane)    { return pick(lane, LEFT, DOWN, UP, RIGHT); }
     public static Arrow strum(int lane)   { return pick(lane, E_LEFT, E_DOWN, E_UP, E_RIGHT); }
+    public static Arrow pressed(int lane) { return pick(lane, EP_LEFT, EP_DOWN, EP_UP, EP_RIGHT); }
     public static Arrow glow(int lane)    { return pick(lane, G_LEFT, G_DOWN, G_UP, G_RIGHT); }
     public static Arrow hold(int lane)    { return pick(lane, HOLD_LEFT, HOLD_DOWN, HOLD_UP, HOLD_RIGHT); }
     public static Arrow holdEnd(int lane) { return pick(lane, HOLD_END_LEFT, HOLD_END_DOWN, HOLD_END_UP, HOLD_END_RIGHT); }

@@ -190,6 +190,61 @@ class NoteJudgeTest {
     }
 
     @Test
+    void listenerHearsMissesAndDroppedHolds() {
+        NoteJudge judge = judge(note(1000, 0, 0, true), note(2000, 2, 400, true));
+        java.util.List<String> heard = new java.util.ArrayList<>();
+        judge.listener = new NoteJudge.Listener() {
+            @Override public void onMiss(JudgedNote note) { heard.add("miss " + note.index); }
+            @Override public void onHoldDropped(JudgedNote note) { heard.add("drop " + note.index); }
+        };
+
+        judge.update(1500, NOTHING_HELD); // note 0 missed
+        judge.press(2, 2000);
+        judge.update(2000, held(2));
+        for (double t = 2016; t <= 2600; t += 16) judge.update(t, NOTHING_HELD); // let go of the hold
+
+        assertEquals(java.util.List.of("miss 0", "drop 1"), heard);
+    }
+
+    @Test
+    void rivalSideOnlyChangesThroughEvents() {
+        NoteJudge rival = new NoteJudge(List.of(note(1000, 0, 0, false), note(2000, 1, 400, false), note(3000, 3, 0, false)), false, BPM);
+
+        // way past every note: nothing is missed by itself (their hit might still be on its way over the network)
+        rival.remoteUpdate(10000);
+        assertEquals(0, rival.stats.misses);
+        assertFalse(rival.notes.get(0).missed);
+
+        assertNotNull(rival.applyHit(0, Rating.GOOD));
+        assertNull(rival.applyHit(0, Rating.SICK), "the same hit twice does nothing");
+        rival.applyMiss(2);
+        assertEquals(200 - 10, rival.stats.score); // Good = 200, a miss = -10
+        assertEquals(1, rival.stats.misses);
+
+        // a hold they hit keeps going until a "dropped" comes in
+        rival.applyHit(1, Rating.SICK);
+        rival.remoteUpdate(2150);
+        assertTrue(rival.notes.get(1).isBeingHeld());
+        rival.applyHoldDropped(1);
+        assertTrue(rival.notes.get(1).missed);
+        assertEquals(2, rival.stats.misses);
+
+        assertNull(rival.applyHit(99, Rating.SICK), "note numbers that don't exist are ignored");
+    }
+
+    @Test
+    void notesAreNumberedTheSameOnBothSides() {
+        List<ChartNote> chart = List.of(note(3000, 0, 0, true), note(1000, 1, 0, true), note(2000, 2, 0, false));
+        NoteJudge mine = new NoteJudge(chart, true, BPM);
+        NoteJudge theirsOfMe = new NoteJudge(chart, true, BPM); // how the rival's game sees my side
+
+        for (int i = 0; i < mine.notes.size(); i++) {
+            assertEquals(i, mine.notes.get(i).index);
+            assertEquals(mine.notes.get(i).note.time, theirsOfMe.notes.get(i).note.time);
+        }
+    }
+
+    @Test
     void accuracyAndLabels() {
         PlayStats stats = new PlayStats();
         assertEquals("?", stats.ratingName());

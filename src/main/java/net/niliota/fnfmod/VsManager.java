@@ -18,9 +18,11 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.niliota.fnfmod.item.ModItems;
 import net.niliota.fnfmod.network.SongDataPayload;
+import net.niliota.fnfmod.network.VsEventsPayload;
 import net.niliota.fnfmod.network.VsMatchPayload;
 import net.niliota.fnfmod.network.VsPickPayload;
 import net.niliota.fnfmod.network.VsReadyPayload;
+import net.niliota.fnfmod.network.VsRivalEventsPayload;
 import net.niliota.fnfmod.network.VsRivalScorePayload;
 import net.niliota.fnfmod.network.VsScore;
 import net.niliota.fnfmod.network.VsScorePayload;
@@ -38,7 +40,8 @@ import java.util.UUID;
 //                   They get a chat message with clickable [Accept] [Decline] (/fnfvs accept|decline <player>), valid for 30 s.
 //  2. picking     - both get the song menus, whoever picks a song first decides the song and their side.
 //  3. loading     - both get the song (same as a normal song request) and load it, then say they're ready.
-//  4. playing     - when both are ready, both countdowns start at the same time. Live scores get passed between them.
+//  4. playing     - when both are ready, both countdowns start at the same time. Scores and every press/hit/miss
+//                   get passed between them, so each sees the other's side live.
 //  5. results     - when both finished (or 15 s after the first one did), the higher score wins. Leaving or stopping = losing.
 // /fnfvs cancel ends the match at any point.
 public class VsManager {
@@ -104,6 +107,7 @@ public class VsManager {
         ServerPlayNetworking.registerGlobalReceiver(VsPickPayload.TYPE, (payload, context) -> onPick(context.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(VsReadyPayload.TYPE, (payload, context) -> onReady(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(VsScorePayload.TYPE, (payload, context) -> onScore(context.player(), payload.score()));
+        ServerPlayNetworking.registerGlobalReceiver(VsEventsPayload.TYPE, (payload, context) -> onEvents(context.player(), payload));
 
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> onLeave(handler.getPlayer(), server));
         ServerTickEvents.END_SERVER_TICK.register(VsManager::onTick);
@@ -239,6 +243,14 @@ public class VsManager {
 
         if (score.isDone() && match.firstDoneAt < 0) match.firstDoneAt = tick;
         if (isDone(match.aScore) && isDone(match.bScore)) finishMatch(match, player.getServer());
+    }
+
+    // a player's presses/hits/misses, passed straight on to their rival
+    private static void onEvents(ServerPlayer player, VsEventsPayload events) {
+        Match match = matches.get(player.getUUID());
+        if (match == null || match.state != State.PLAYING) return;
+        ServerPlayer rival = player.getServer().getPlayerList().getPlayer(match.other(player.getUUID()));
+        if (rival != null) ServerPlayNetworking.send(rival, new VsRivalEventsPayload(events.events()));
     }
 
     private static void onTick(MinecraftServer server) {

@@ -30,5 +30,8 @@ public class ModPayloads {
         PayloadTypeRegistry.playC2S().register(VsPickPayload.TYPE, VsPickPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(VsReadyPayload.TYPE, VsReadyPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(VsScorePayload.TYPE, VsScorePayload.CODEC);
+        // the rival's presses, hits and misses, shown live on the opponent strums
+        PayloadTypeRegistry.playC2S().register(VsEventsPayload.TYPE, VsEventsPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(VsRivalEventsPayload.TYPE, VsRivalEventsPayload.CODEC);
     }
 }

@@ -12,6 +12,7 @@ public class JudgedNote {
     public final ChartNote note;
     public final int pieceCount;      // how many hold pieces this note has (0 = normal tap note)
     public final double stepCrochet;  // time between pieces in ms
+    public int index;                 // position in its NoteJudge's list (the same on both players' games in VS)
 
     public boolean hit = false;       // the head was hit
     public boolean missed = false;    // the head was missed, or the hold was dropped

@@ -13,6 +13,7 @@ import net.niliota.fnfmod.Charting.Chart;
 import net.niliota.fnfmod.Judging.JudgedNote;
 import net.niliota.fnfmod.Judging.NoteJudge;
 import net.niliota.fnfmod.network.ClientVs;
+import net.niliota.fnfmod.network.VsEvent;
 import net.niliota.fnfmod.network.VsMatchPayload;
 import net.niliota.fnfmod.network.VsScore;
 
@@ -62,6 +63,7 @@ public class Gameplay {
     public static boolean[] holding = new boolean[4];
     public static double[] opponentLastHitTime = new double[4];
     public static boolean[] opponentHolding = new boolean[4];
+    private static boolean[] lastHeld = new boolean[4]; // my keys last frame (VS sends when they change)
 
     // x of one of the player's lanes (0=left, 1=down, 2=up, 3=right)
     public static int laneX(int lane) {
@@ -149,16 +151,26 @@ public class Gameplay {
                 if (hit != null) {
                     lastHitTime[lane] = songPosition;
                     GameplayHud.showRating(hit.rating, judge.stats.combo);
+                    ClientVs.queue(new VsEvent(VsEvent.HIT, hit.index, hit.rating.ordinal())); // VS: the rival sees it
                 }
             }
             held[lane] = keys[lane].isDown();
-        }
 
-        judge.update(songPosition, held);
+            // VS: the rival sees my strums pressed
+            if (held[lane] != lastHeld[lane]) ClientVs.queue(new VsEvent(held[lane] ? VsEvent.KEY_DOWN : VsEvent.KEY_UP, lane, 0));
+        }
+        lastHeld = held;
+
+        judge.update(songPosition, held); // misses and dropped holds go to the rival through judge.listener
     }
 
     // The opponent always plays, even when it isn't shown, so turning it on later doesn't show a pile of old notes.
+    // In VS it's the rival: their hits and misses come from their game (ClientVs), here only their holds keep going.
     private static void playOpponent() {
+        if (vs) {
+            opponentJudge.remoteUpdate(songPosition);
+            return;
+        }
         for (JudgedNote hit : opponentJudge.autoPlay(songPosition)) {
             opponentLastHitTime[hit.note.lane] = songPosition;
         }
@@ -324,6 +336,15 @@ public class Gameplay {
         mySide = !vs || ClientVs.iAmBoyfriend;
         judge = new NoteJudge(chart.notes, mySide, chart.bpm, chart.bpmChanges);
         opponentJudge = new NoteJudge(chart.notes, !mySide, chart.bpm, chart.bpmChanges);
+        lastHeld = new boolean[4];
+        if (vs) {
+            // my misses and dropped holds go to the rival too
+            judge.listener = new NoteJudge.Listener() {
+                @Override public void onMiss(JudgedNote note) { ClientVs.queue(new VsEvent(VsEvent.MISS, note.index, 0)); }
+                @Override public void onHoldDropped(JudgedNote note) { ClientVs.queue(new VsEvent(VsEvent.HOLD_DROPPED, note.index, 0)); }
+            };
+            ClientVs.rivalKeysDown = new boolean[4];
+        }
         SongClock.reset();
         lastHitTime = new double[] {-1000, -1000, -1000, -1000};
         opponentLastHitTime = new double[] {-1000, -1000, -1000, -1000};

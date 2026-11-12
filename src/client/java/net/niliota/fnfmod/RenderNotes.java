@@ -3,6 +3,7 @@ package net.niliota.fnfmod;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.resources.ResourceLocation;
+import net.niliota.fnfmod.network.ClientVs;
 
 public class RenderNotes {
     public static boolean visible = false;
@@ -91,7 +92,8 @@ public class RenderNotes {
             }
 
 
-            // Opponent's strums (if turned on). They glow when the opponent hits a note, there's no pressing for them.
+            // Opponent's strums (if turned on). They glow when the opponent hits a note.
+            // In VS that's the rival, and their strums also look pressed while they hold a key.
             if (FnfOptions.showOpponent) {
                 context.setColor(1f, 1f, 1f, Gameplay.opponentAlpha());
                 for (int lane = 0; lane < 4; lane++) {
@@ -101,6 +103,8 @@ public class RenderNotes {
                         int glowSize = Math.round(32 * 205f / 156f);
                         int offset = (glowSize - 32) / 2;
                         Arrow.glow(lane).draw(context, noteSpriteAtlas, laneX - offset, y - offset, glowSize, glowSize);
+                    } else if (Gameplay.vs && ClientVs.rivalKeysDown[lane]) {
+                        Arrow.pressed(lane).draw(context, noteSpriteAtlas, laneX, y);
                     } else {
                         Arrow.strum(lane).draw(context, noteSpriteAtlas, laneX, y);
                     }

@@ -9,18 +9,23 @@ import net.niliota.fnfmod.Audio.AudioManager;
 import net.niliota.fnfmod.Audio.AudioTrack;
 import net.niliota.fnfmod.Charting.Chart;
 import net.niliota.fnfmod.Gameplay;
+import net.niliota.fnfmod.Judging.JudgedNote;
+import net.niliota.fnfmod.Judging.NoteJudge;
 import net.niliota.fnfmod.Judging.PlayStats;
+import net.niliota.fnfmod.Judging.Rating;
 import net.niliota.fnfmod.Screens.FnfOptionsScreen;
 import net.niliota.fnfmod.Screens.PackSelectScreen;
 import net.niliota.fnfmod.Screens.SongOptionsScreen;
 import net.niliota.fnfmod.Screens.SongSelectScreen;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 // The client side of a VS match (the server side is VsManager).
-// Keeps track of the match, holds the loaded song until both players are ready, and sends the live score.
+// Keeps track of the match, holds the loaded song until both players are ready, sends my score and my presses/hits/misses,
+// and applies the rival's ones to their side (Gameplay.opponentJudge), so their real game shows on the opponent strums.
 public class ClientVs {
     public static final int NONE = -1;
     public static int state = NONE;          // NONE or one of VsMatchPayload's states
@@ -36,6 +41,11 @@ public class ClientVs {
 
     private static int ticksSinceScore = 0;
 
+    // my presses/hits/misses since the last tick, sent once per tick
+    private static final List<VsEvent> outgoing = new ArrayList<>();
+    // which of the rival's keys are down (their strums look pressed)
+    public static boolean[] rivalKeysDown = new boolean[4];
+
     public static boolean inMatch() {
         return state != NONE;
     }
@@ -43,8 +53,21 @@ public class ClientVs {
     public static void init() {
         ClientPlayNetworking.registerGlobalReceiver(VsMatchPayload.TYPE, (payload, context) -> onMatch(payload));
         ClientPlayNetworking.registerGlobalReceiver(VsRivalScorePayload.TYPE, (payload, context) -> rivalScore = payload.score());
+        ClientPlayNetworking.registerGlobalReceiver(VsRivalEventsPayload.TYPE, (payload, context) -> onRivalEvents(payload.events()));
 
-        // live score, 4 times a second
+        // my events, once per tick (in pieces if there are a lot)
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (outgoing.isEmpty()) return;
+            if (ClientPlayNetworking.canSend(VsEventsPayload.TYPE)) {
+                for (int start = 0; start < outgoing.size(); start += VsEvent.MAX_PER_PACKET) {
+                    List<VsEvent> part = outgoing.subList(start, Math.min(outgoing.size(), start + VsEvent.MAX_PER_PACKET));
+                    ClientPlayNetworking.send(new VsEventsPayload(new ArrayList<>(part)));
+                }
+            }
+            outgoing.clear();
+        });
+
+        // score for the server's result, 4 times a second
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!Gameplay.running || !Gameplay.vs || !Gameplay.musicStarted) return;
             if (++ticksSinceScore >= 5) {
@@ -115,6 +138,32 @@ public class ClientVs {
         ClientPlayNetworking.send(new VsReadyPayload());
     }
 
+    // something happened in my game (Gameplay), the rival should see it
+    public static void queue(VsEvent event) {
+        if (Gameplay.vs) outgoing.add(event);
+    }
+
+    // something happened in the rival's game: show it on their side
+    private static void onRivalEvents(List<VsEvent> events) {
+        NoteJudge rival = Gameplay.opponentJudge;
+        if (!Gameplay.running || !Gameplay.vs || rival == null) return;
+
+        for (VsEvent event : events) {
+            switch (event.type()) {
+                case VsEvent.KEY_DOWN, VsEvent.KEY_UP -> {
+                    if (event.value() >= 0 && event.value() < 4) rivalKeysDown[event.value()] = event.type() == VsEvent.KEY_DOWN;
+                }
+                case VsEvent.HIT -> {
+                    if (event.extra() < 0 || event.extra() >= Rating.values().length) continue;
+                    JudgedNote hit = rival.applyHit(event.value(), Rating.values()[event.extra()]);
+                    if (hit != null) Gameplay.opponentLastHitTime[hit.note.lane] = Gameplay.songPosition; // their strum glows
+                }
+                case VsEvent.MISS -> rival.applyMiss(event.value());
+                case VsEvent.HOLD_DROPPED -> rival.applyHoldDropped(event.value());
+            }
+        }
+    }
+
     public static void sendScore(int status) {
         if (Gameplay.judge == null || !ClientPlayNetworking.canSend(VsScorePayload.TYPE)) return;
         PlayStats stats = Gameplay.judge.stats;
@@ -123,6 +172,8 @@ public class ClientVs {
 
     private static void reset() {
         state = NONE;
+        outgoing.clear();
+        rivalKeysDown = new boolean[4];
         rivalScore = null;
         preparedChart = null;
         preparedTracks = null;

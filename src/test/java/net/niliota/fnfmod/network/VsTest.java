@@ -58,5 +58,16 @@ class VsTest {
         assertEquals(rivalScore, roundTrip(VsRivalScorePayload.CODEC, rivalScore));
 
         assertNotNull(roundTrip(VsReadyPayload.CODEC, new VsReadyPayload()));
+
+        List<VsEvent> events = List.of(new VsEvent(VsEvent.KEY_DOWN, 2, 0), new VsEvent(VsEvent.HIT, 1234, 1), new VsEvent(VsEvent.MISS, 5, 0));
+        assertEquals(new VsEventsPayload(events), roundTrip(VsEventsPayload.CODEC, new VsEventsPayload(events)));
+        assertEquals(new VsRivalEventsPayload(events), roundTrip(VsRivalEventsPayload.CODEC, new VsRivalEventsPayload(events)));
+    }
+
+    @Test
+    void tooManyEventsAreRefused() {
+        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+        buf.writeVarInt(VsEvent.MAX_PER_PACKET + 1);
+        assertThrows(IllegalArgumentException.class, () -> VsEventsPayload.CODEC.decode(buf));
     }
 }
