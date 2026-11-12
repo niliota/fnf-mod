@@ -16,7 +16,6 @@ import net.minecraft.world.phys.Vec3;
 // The direction is locked when it's turned on, so looking around during a song doesn't swing the camera around.
 public class FnfCamera {
     public static final double MIN_DISTANCE = 2, MAX_DISTANCE = 10;
-    public static double distance = 5.5;             // blocks from the point the camera looks at, set with the slider on the song options screen
     private static final double FOCUS_AHEAD = 1.5;  // the camera looks at a point this far in front of the player, so they end up on the right
     private static final double FOCUS_HEIGHT = 1.2; // blocks above the player's feet
     private static final float PITCH = 6;           // looking down a little
@@ -84,7 +83,7 @@ public class FnfCamera {
         // (+90 puts the player's front towards the left of the screen, so they face left like boyfriend)
         float yaw = lockedYaw + 90;
         Vec3 cameraForward = Vec3.directionFromRotation(PITCH, yaw);
-        Vec3 wanted = focus.subtract(cameraForward.scale(distance));
+        Vec3 wanted = focus.subtract(cameraForward.scale(FnfOptions.cameraDistance));
 
         // if a wall is in the way, come closer instead of looking through it (like vanilla third person)
         HitResult hit = level.clip(new ClipContext(focus, wanted, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, entity));

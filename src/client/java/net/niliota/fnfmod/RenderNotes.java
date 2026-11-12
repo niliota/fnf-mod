@@ -92,7 +92,7 @@ public class RenderNotes {
 
 
             // Opponent's strums (if turned on). They glow when the opponent hits a note, there's no pressing for them.
-            if (Gameplay.showOpponent) {
+            if (FnfOptions.showOpponent) {
                 context.setColor(1f, 1f, 1f, Gameplay.opponentAlpha());
                 for (int lane = 0; lane < 4; lane++) {
                     int laneX = Gameplay.opponentLaneX(lane);

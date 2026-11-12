@@ -22,6 +22,24 @@ public class AudioManager {
         tracks.clear();
     }
 
+    // pause/resume every track at the same instant, so they stay in sync (pause menu)
+    public static void pauseAll() {
+        if (!tracks.isEmpty()) AL10.alSourcePausev(sourcesOf(tracks));
+    }
+
+    public static void resumeAll() {
+        if (!tracks.isEmpty()) AL10.alSourcePlayv(sourcesOf(tracks));
+    }
+
+    private static IntBuffer sourcesOf(List<AudioTrack> tracks) {
+        IntBuffer sources = BufferUtils.createIntBuffer(tracks.size());
+        for (AudioTrack track : tracks) {
+            sources.put(track.getSource());
+        }
+        sources.flip();
+        return sources;
+    }
+
     // to play multiple audio tracks at the same instant
     public static void playAll(List<AudioTrack> tracks) {
         IntBuffer sources = BufferUtils.createIntBuffer(tracks.size());

@@ -1,13 +1,10 @@
 package net.niliota.fnfmod.Screens;
 
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.niliota.fnfmod.FnfCamera;
-import net.niliota.fnfmod.Gameplay;
 import net.niliota.fnfmod.network.ClientNetworking;
 import net.niliota.fnfmod.network.RequestSongPayload;
 import net.niliota.fnfmod.network.SongCatalogPayload;
@@ -16,7 +13,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -116,58 +112,6 @@ public class SongOptionsScreen extends Screen {
             ));
         }).bounds(200, 10, 120, 20).build();
         this.addRenderableWidget(startButton);
-
-        // No fail: health running out doesn't end the song (remembered for the next songs too)
-        Checkbox noFailCheckbox = Checkbox.builder(Component.literal("No fail"), this.font)
-                .pos(200, 34)
-                .selected(Gameplay.noFail)
-                .onValueChange((checkbox, value) -> Gameplay.noFail = value)
-                .build();
-        this.addRenderableWidget(noFailCheckbox);
-
-        // Middle scroll: the player's strums in the middle of the screen
-        Checkbox middleScrollCheckbox = Checkbox.builder(Component.literal("Middle scroll"), this.font)
-                .pos(200, 56)
-                .selected(Gameplay.middleScroll)
-                .onValueChange((checkbox, value) -> Gameplay.middleScroll = value)
-                .build();
-        this.addRenderableWidget(middleScrollCheckbox);
-
-        // Show the opponent's notes, they play by themselves
-        Checkbox opponentCheckbox = Checkbox.builder(Component.literal("Show opponent"), this.font)
-                .pos(200, 78)
-                .selected(Gameplay.showOpponent)
-                .onValueChange((checkbox, value) -> Gameplay.showOpponent = value)
-                .build();
-        this.addRenderableWidget(opponentCheckbox);
-
-        // FNF camera: side view while the song plays (can also be toggled during a song with its key, V by default)
-        Checkbox cameraCheckbox = Checkbox.builder(Component.literal("FNF camera"), this.font)
-                .pos(200, 100)
-                .selected(Gameplay.fnfCamera)
-                .onValueChange((checkbox, value) -> Gameplay.fnfCamera = value)
-                .build();
-        this.addRenderableWidget(cameraCheckbox);
-
-        // How far the FNF camera is from the player
-        double sliderValue = (FnfCamera.distance - FnfCamera.MIN_DISTANCE) / (FnfCamera.MAX_DISTANCE - FnfCamera.MIN_DISTANCE);
-        AbstractSliderButton distanceSlider = new AbstractSliderButton(200, 122, 120, 20, Component.empty(), sliderValue) {
-            {
-                updateMessage();
-            }
-
-            @Override
-            protected void updateMessage() {
-                setMessage(Component.literal(String.format(Locale.ROOT, "Camera distance: %.1f", FnfCamera.distance)));
-            }
-
-            @Override
-            protected void applyValue() {
-                double blocks = FnfCamera.MIN_DISTANCE + value * (FnfCamera.MAX_DISTANCE - FnfCamera.MIN_DISTANCE);
-                FnfCamera.distance = Math.round(blocks * 2) / 2.0; // steps of half a block
-            }
-        };
-        this.addRenderableWidget(distanceSlider);
     }
 
     @Override

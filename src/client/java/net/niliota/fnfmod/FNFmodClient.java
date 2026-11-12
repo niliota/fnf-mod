@@ -31,6 +31,9 @@ public class FNFmodClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		// the player's saved options (config/fnfmod.json)
+		FnfOptions.load();
+
 		leftKey  = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.fnfmod.left",  InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT,  "category.fnfmod.keys"));
 		downKey  = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.fnfmod.down",  InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_DOWN,  "category.fnfmod.keys"));
 		upKey    = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.fnfmod.up",    InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UP,    "category.fnfmod.keys"));
@@ -67,7 +70,8 @@ public class FNFmodClient implements ClientModInitializer {
 
 		// Check if music has ended every tick. (Seems not very efficient)
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-			if (RenderNotes.visible && Gameplay.musicStarted) { // during the countdown nothing is playing yet
+			Gameplay.checkPause(); // also here, in case the HUD isn't drawn (F1)
+			if (RenderNotes.visible && Gameplay.musicStarted && !Gameplay.paused) { // during the countdown or a pause nothing is playing
 				boolean anyPlaying = AudioManager.tracks.stream().anyMatch(AudioTrack::isPlaying);
 
 				if (!anyPlaying) {

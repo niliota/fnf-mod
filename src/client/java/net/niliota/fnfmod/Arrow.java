@@ -59,6 +59,11 @@ public enum Arrow {
         context.blit(texture, x, y, width, height, spriteX, spriteY, regionWidth, regionHeight, 2048, 1024);
     }
 
+    // Upside down (downscroll hold ends): the sprite is read from its bottom to its top.
+    public void drawFlipped(GuiGraphics context, ResourceLocation texture, int x, int y, int width, int height) {
+        context.blit(texture, x, y, width, height, spriteX, spriteY + regionHeight, regionWidth, -regionHeight, 2048, 1024);
+    }
+
     // Lane number (0=left, 1=down, 2=up, 3=right) to the right sprite.
     public static Arrow note(int lane)    { return pick(lane, LEFT, DOWN, UP, RIGHT); }
     public static Arrow strum(int lane)   { return pick(lane, E_LEFT, E_DOWN, E_UP, E_RIGHT); }

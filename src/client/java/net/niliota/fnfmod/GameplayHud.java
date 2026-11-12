@@ -42,9 +42,10 @@ public class GameplayHud {
             int screenHeight = Minecraft.getInstance().getWindow().getGuiScaledHeight();
 
             // Health bar, bottom middle above the hotbar and hearts (like FNF, the top is where the strums are).
+            // With downscroll the strums are at the bottom, so it goes to the top instead (like Psych).
             // The opponent's red on the left, the player's green on the right.
             int barX = screenWidth / 2 - HEALTH_BAR_WIDTH / 2;
-            int barY = screenHeight - BOTTOM_OFFSET;
+            int barY = FnfOptions.downscroll ? font.lineHeight + 7 : screenHeight - BOTTOM_OFFSET;
             int playerWidth = (int)(HEALTH_BAR_WIDTH * stats.health / PlayStats.MAX_HEALTH);
             context.fill(barX - 1, barY - 1, barX + HEALTH_BAR_WIDTH + 1, barY + HEALTH_BAR_HEIGHT + 1, 0xFF000000);
             context.fill(barX, barY, barX + HEALTH_BAR_WIDTH - playerWidth, barY + HEALTH_BAR_HEIGHT, 0xFFFF0000);
@@ -60,10 +61,11 @@ public class GameplayHud {
                 alpha = Math.max(alpha, 0x10); // text with almost no alpha gets drawn fully visible, so stop a bit above 0
                 int color = (alpha << 24) | ratingColor(lastRating);
 
-                // under the middle of the player's strums
+                // under the middle of the player's strums (above them with downscroll)
                 String text = lastRating.displayName + (lastCombo >= 2 ? " x" + lastCombo : "");
                 int textX = Gameplay.laneX(0) + 2 * Gameplay.NOTE_SIZE - font.width(text) / 2;
-                context.drawString(font, text, textX, Gameplay.strumY() + Gameplay.NOTE_SIZE + 8, color, true);
+                int textY = FnfOptions.downscroll ? Gameplay.strumY() - 8 - font.lineHeight : Gameplay.strumY() + Gameplay.NOTE_SIZE + 8;
+                context.drawString(font, text, textX, textY, color, true);
             }
 
             // Countdown text, big in the middle of the screen. Over one beat it slowly grows and fades out.
@@ -107,6 +109,12 @@ public class GameplayHud {
         boolean go = tick == 3;
         SoundEvent sound = go ? SoundEvents.NOTE_BLOCK_PLING.value() : SoundEvents.NOTE_BLOCK_HAT.value();
         Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(sound, go ? 1.5f : 1f, 0.6f));
+    }
+
+    // after the pause menu: move the popup timers forward, so they continue where they stopped
+    public static void shiftTimers(long ms) {
+        lastRatingTime += ms;
+        countdownTime += ms;
     }
 
     public static void showRating(Rating rating, int combo) {

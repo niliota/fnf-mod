@@ -49,6 +49,12 @@ public class PackSelectScreen extends Screen {
 
         }).bounds(200, 10, 120, 20).build();
         this.addRenderableWidget(stopButton);
+
+        // FNFmod's options (set once for every song)
+        Button optionsButton = Button.builder(Component.nullToEmpty("Options"), (btn) -> {
+            Minecraft.getInstance().setScreen(new FnfOptionsScreen(this));
+        }).bounds(330, 10, 80, 20).build();
+        this.addRenderableWidget(optionsButton);
     }
 
     @Override
