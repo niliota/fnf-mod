@@ -155,7 +155,9 @@ public class Gameplay {
         boolean[] holdingLanes = new boolean[4];
 
         int screenHeight = Minecraft.getInstance().getWindow().getGuiScaledHeight();
-        double speed = currentChart.scrollSpeed > 0 ? currentChart.scrollSpeed : 1;
+        // the speed right now (it can change during the song), every note on this side moves at it, like in Psych and Codename
+        double speed = currentChart.scrollSpeeds != null ? currentChart.scrollSpeeds.speedAt(songPosition, !isOpponent)
+                     : currentChart.scrollSpeed > 0 ? currentChart.scrollSpeed : 1;
         // same as Psych: 0.45 pixels per ms at 720p, times the scroll speed
         double pixelsPerMs = (screenHeight / 720.0) * 0.45 * speed;
         int strumY = strumY();

@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.niliota.fnfmod.Charting.ChartNote;
 import net.niliota.fnfmod.Charting.ChartParser;
 import net.niliota.fnfmod.Charting.ChartTiming;
+import net.niliota.fnfmod.Charting.ScrollSpeeds;
 import net.niliota.fnfmod.network.AudioChunkPayload;
 import net.niliota.fnfmod.network.AudioRequestPayload;
 import net.niliota.fnfmod.network.RequestSongPayload;
@@ -110,13 +111,15 @@ public class SongSender {
             dataFiles.add(chartFile);
             dataFiles.add(timing.metadataFile);
             double scrollSpeed = ChartParser.getScrollSpeed(dataFiles);
+            // speed changes during the song, from the chart's events (and events.json)
+            ScrollSpeeds scrollSpeeds = ScrollSpeeds.read(chartFile, scrollSpeed, timing.changes);
 
             List<String> audioHashes = new ArrayList<>();
             for (Path file : audioFiles) {
                 audioHashes.add(AudioHashes.hashOf(file));
             }
 
-            ServerPlayNetworking.send(player, new SongDataPayload(song.name, timing.startBpm, scrollSpeed, notes, timing.changes, audioHashes));
+            ServerPlayNetworking.send(player, new SongDataPayload(song.name, timing.startBpm, scrollSpeed, notes, timing.changes, scrollSpeeds.changes, audioHashes));
         } catch (Exception e) {
             // the full error stays in the server log, the player only gets a short message (errors can contain server paths)
             LOGGER.error("Couldn't load song {} from pack {}", song.name, pack.name, e);

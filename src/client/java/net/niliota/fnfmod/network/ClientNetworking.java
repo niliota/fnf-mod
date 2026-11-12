@@ -8,6 +8,7 @@ import net.niliota.fnfmod.Audio.AudioCache;
 import net.niliota.fnfmod.Audio.AudioManager;
 import net.niliota.fnfmod.Audio.AudioTrack;
 import net.niliota.fnfmod.Charting.Chart;
+import net.niliota.fnfmod.Charting.ScrollSpeeds;
 import net.niliota.fnfmod.ClientSongCatalog;
 import net.niliota.fnfmod.Gameplay;
 
@@ -112,6 +113,8 @@ public class ClientNetworking {
 
         Chart chart = new Chart(song.scrollSpeed(), song.notes(), song.bpm());
         chart.bpmChanges = song.bpmChanges();
+        // charts without a speed get 1, so the notes still move
+        chart.scrollSpeeds = new ScrollSpeeds(song.scrollSpeed() > 0 ? song.scrollSpeed() : 1, new ArrayList<>(song.scrollChanges()));
         LOGGER.info("Starting {} ({} notes, bpm {}, speed {})", song.songName(), song.notes().size(), song.bpm(), song.scrollSpeed());
         // the tracks start playing when the countdown ends (see Gameplay)
         Gameplay.startGameplay(chart, allTracks);

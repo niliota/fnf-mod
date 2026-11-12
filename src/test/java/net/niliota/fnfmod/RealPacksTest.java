@@ -4,6 +4,7 @@ import net.niliota.fnfmod.Charting.BpmChange;
 import net.niliota.fnfmod.Charting.ChartNote;
 import net.niliota.fnfmod.Charting.ChartParser;
 import net.niliota.fnfmod.Charting.ChartTiming;
+import net.niliota.fnfmod.Charting.ScrollSpeeds;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +23,12 @@ import static org.junit.jupiter.api.Assertions.*;
 // Only runs on a machine that has packs in run/fnfpacks (they aren't in the repo, so it's skipped on GitHub).
 // Prints a summary, and fails if something that parsed fine gives obviously broken bpm/speed info.
 class RealPacksTest {
+
+    private static int count(String text, String part) {
+        int count = 0;
+        for (int i = text.indexOf(part); i >= 0; i = text.indexOf(part, i + 1)) count++;
+        return count;
+    }
 
     // is this time on a 16th note of the bpm that's playing at that time
     private static boolean onGrid(double time, List<BpmChange> changes) {
@@ -53,6 +60,9 @@ class RealPacksTest {
         List<String> worseCharts = new ArrayList<>();
         List<String> driftingCharts = new ArrayList<>();
         long allNotes = 0, allOnGrid = 0;
+        java.util.Set<Path> checkedSpeedCharts = new java.util.HashSet<>();
+        int speedEventsRead = 0, chartsWithSpeedChanges = 0;
+        List<String> speedMisses = new ArrayList<>();
         List<String> bpmDifferences = new ArrayList<>();
         List<String> notCharts = new ArrayList<>();
 
@@ -83,6 +93,18 @@ class RealPacksTest {
                     ChartTiming timing = ChartTiming.read(chart, null);
                     List<BpmChange> changes = timing.changes;
                     double speed = ChartParser.getScrollSpeed(Arrays.asList(chart, timing.metadataFile));
+
+                    // Scroll speed changes: every speed event written in the chart file itself should be read
+                    // (events.json ones are checked by ScrollSpeedsTest, they're shared by several charts)
+                    if (checkedSpeedCharts.add(chart.toAbsolutePath())) {
+                        ScrollSpeeds speeds = ScrollSpeeds.read(chart, speed, timing.changes);
+                        String raw = Files.readString(chart);
+                        int written = count(raw, "\"Change Scroll Speed\"") + count(raw, "\"Scroll Speed Change\"") + count(raw, "\"ScrollSpeed\"");
+                        speedEventsRead += speeds.changes.size();
+                        if (!speeds.changes.isEmpty()) chartsWithSpeedChanges++;
+                        if (speeds.changes.size() < written) speedMisses.add(pack.name + " / " + song.name + " / " + chart.getFileName()
+                                + " (written " + written + ", read " + speeds.changes.size() + ")");
+                    }
                     int bpm = (int) timing.startBpm;
 
                     int oldOnGrid = 0, newOnGrid = 0;
@@ -152,6 +174,10 @@ class RealPacksTest {
         System.out.println("Charts whose starting bpm differs from the old search (ChartParser.getBpm with the first metadata file):");
         for (String difference : bpmDifferences) System.out.println("  " + difference);
         assertTrue(allOnGrid > 0.95 * allNotes, "less than 95% of all notes are on the beat grid, something got worse");
+        System.out.println("Scroll speed changes read: " + speedEventsRead + " in " + chartsWithSpeedChanges + " charts (including events.json)");
+        System.out.println("Charts with speed events that weren't all read: " + speedMisses);
+        assertTrue(speedMisses.isEmpty(), "some scroll speed events weren't read (a new kind of event?): " + speedMisses);
+
         System.out.println("Charts: " + charts + ", parsed: " + parsed + ", with bpm changes: " + withChanges
                 + ", no bpm found: " + noBpm + ", no speed found: " + noSpeed);
         System.out.println("Couldn't parse " + notCharts.size() + " files, first few: " + notCharts.subList(0, Math.min(15, notCharts.size())));

@@ -250,7 +250,7 @@ public class ChartTiming {
     }
 
     // Where a Codename chart sits: songs/<song>/charts/<difficulty>.json, or songs/<song>/charts/<variant>/<difficulty>.json
-    private record CodenameSong(Path folder, String variant, String difficulty) {
+    record CodenameSong(Path folder, String variant, String difficulty) {
         static CodenameSong of(Path chartFile) {
             String difficulty = chartFile.getFileName().toString().replaceFirst("\\.json$", "");
             Path folder = chartFile.getParent();
