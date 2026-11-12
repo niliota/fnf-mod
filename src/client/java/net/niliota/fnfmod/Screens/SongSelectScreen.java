@@ -40,7 +40,7 @@ public class SongSelectScreen extends Screen {
             Button songButton = Button.builder(Component.nullToEmpty(song.name()), (btn) -> {
                 // When the button is clicked, we can display a toast to the screen.
                 this.minecraft.getToasts().addToast(
-                        SystemToast.multiline(this.minecraft, SystemToast.SystemToastId.NARRATOR_TOGGLE, Component.nullToEmpty(String.format("Opening %s!", song.name())), Component.nullToEmpty("This is a toast."))
+                        SystemToast.multiline(this.minecraft, SystemToast.SystemToastId.NARRATOR_TOGGLE, Component.nullToEmpty(String.format("Opening %s!", song.name())), Component.nullToEmpty(song.chartFiles().size() + " charts, " + (song.instFiles().size() + song.voicesFiles().size()) + " audio files"))
                 );
 
 //                if (song.audioVoicesFiles.toArray().length > 1 || song.audioInstFiles.toArray().length > 1) {

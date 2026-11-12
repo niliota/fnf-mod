@@ -65,6 +65,7 @@ public class FNFSong {
         try (Stream<Path> stream = Files.walk(searchPath, 6)) {
             songNameDirs = stream
                     .filter(p -> Files.isDirectory(p) && p.getFileName().toString().equals(name)) // filter for directories with the song's name
+                    .filter(p -> !isInAssetFolder(p)) // but not ones like images/characters/<name>, those are sprites, not songs
                     .collect(Collectors.toList());
         } catch (IOException e) {
             e.printStackTrace();
@@ -83,11 +84,23 @@ public class FNFSong {
                     String filename = file.getFileName().toString().toLowerCase();
                     if (!filename.contains("meta") && filename.endsWith(".json") && !filename.contains("events"))       chartFiles.add(file);
                     if (filename.contains("meta") && filename.endsWith(".json"))                                        metadataFiles.add(file);
-                    if (filename.contains("inst"))                                                                      audioInstFiles.add(file);
-                    if (filename.contains("voice"))                                                                     audioVoicesFiles.add(file);
+                    if (filename.contains("inst") && filename.endsWith(".ogg"))                                         audioInstFiles.add(file);
+                    if (filename.contains("voice") && filename.endsWith(".ogg"))                                        audioVoicesFiles.add(file);
                 }
             } catch (IOException e) { e.printStackTrace(); }
         }
+    }
+
+    // Folders that hold sprites, sounds, menu music and so on. A folder with the song's name inside one of these
+    // (like images/characters/pico for the song "pico") isn't the song's folder.
+    private static final List<String> ASSET_FOLDERS = List.of("images", "characters", "stages", "sounds", "music", "videos", "fonts", "shaders");
+
+    // true if the folder is somewhere inside one of the ASSET_FOLDERS (only looking at the part inside the pack)
+    private boolean isInAssetFolder(Path folder) {
+        for (Path part : searchPath.relativize(folder)) {
+            if (ASSET_FOLDERS.contains(part.toString().toLowerCase())) return true;
+        }
+        return false;
     }
 
     // true if the file is somewhere inside an "autosaves" folder (Codename's chart editor puts backups there)

@@ -21,7 +21,7 @@ import static net.niliota.fnfmod.FNFmod.LOGGER;
 //  * Psych 1.0      - "format": "psych_v1...", sections where lanes 0-3 are ALWAYS the player
 //  * Legacy/others  - sections where lanes 0-3 belong to whoever the section is focused on (mustHitSection)
 //                     (sometimes wrapped inside a "song" object, like Indie Cross and NightmareVision)
-public class ChartParser {
+public class    ChartParser {
 
     // Order in which difficulties are picked when a chart file has multiple of them inside.
     private static final String[] DIFFICULTY_PREFERENCE = {"hard", "normal", "easy"};

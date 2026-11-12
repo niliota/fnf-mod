@@ -4,6 +4,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.AL11;
 import org.lwjgl.stb.STBVorbis;
+import org.lwjgl.system.libc.LibCStdlib;
 
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
@@ -30,6 +31,8 @@ public class AudioTrack {
 
         buffer = AL10.alGenBuffers();
         AL10.alBufferData(buffer, format, rawAudio, sampleRate.get(0));
+        // OpenAL made its own copy, so free stb's decoded audio (stb allocates it with malloc, Java won't free it by itself)
+        LibCStdlib.free(rawAudio);
         source = AL10.alGenSources();
         AL10.alSourcei(source, AL10.AL_BUFFER, buffer);
     }
