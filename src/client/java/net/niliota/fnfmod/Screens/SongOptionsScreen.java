@@ -5,7 +5,11 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.niliota.fnfmod.network.ClientNetworking;
+import net.niliota.fnfmod.network.ClientVs;
+import net.niliota.fnfmod.network.VsMatchPayload;
+import net.niliota.fnfmod.network.VsPickPayload;
 import net.niliota.fnfmod.network.RequestSongPayload;
 import net.niliota.fnfmod.network.SongCatalogPayload;
 
@@ -91,7 +95,9 @@ public class SongOptionsScreen extends Screen {
 
 
         // Start button, asks the server for the song. It answers with the chart and the song starts once the audio is here.
-        Button startButton = Button.builder(Component.nullToEmpty("Start playing"), (btn) -> {
+        // In a VS match it picks the song (and side) for both players instead.
+        boolean vs = ClientVs.state == VsMatchPayload.PICKING;
+        Button startButton = Button.builder(Component.nullToEmpty(vs ? "Start VS" : "Start playing"), (btn) -> {
             List<Integer> instIds = selectedIds(checkboxToInstFile);
             List<Integer> voicesIds = selectedIds(checkboxToVoicesFile);
             List<Integer> chartIds = selectedIds(checkboxToChartFile);
@@ -102,16 +108,30 @@ public class SongOptionsScreen extends Screen {
             // can't play without a chart or without any audio
             if (chartIds.isEmpty() || (instIds.isEmpty() && voicesIds.isEmpty())) return;
 
-            ClientNetworking.requestSong(new RequestSongPayload(
+            RequestSongPayload request = new RequestSongPayload(
                     packId,
                     songId,
                     instIds,
                     voicesIds,
                     chartIds.get(0), // only one chart can be played at a time, the first ticked one is used
                     metadataIds.isEmpty() ? -1 : metadataIds.get(0)
-            ));
+            );
+            if (ClientVs.state == VsMatchPayload.PICKING) {
+                ClientPlayNetworking.send(new VsPickPayload(request, ClientVs.pickBoyfriend));
+            } else {
+                ClientNetworking.requestSong(request);
+            }
         }).bounds(200, 10, 120, 20).build();
         this.addRenderableWidget(startButton);
+
+        // VS: which side the picker plays, the rival gets the other one
+        if (vs) {
+            Button sideButton = Button.builder(Component.nullToEmpty(sideText()), (btn) -> {
+                ClientVs.pickBoyfriend = !ClientVs.pickBoyfriend;
+                btn.setMessage(Component.nullToEmpty(sideText()));
+            }).bounds(200, 34, 120, 20).build();
+            this.addRenderableWidget(sideButton);
+        }
     }
 
     @Override
@@ -133,6 +153,10 @@ public class SongOptionsScreen extends Screen {
         return true;
     }
 
+
+    private static String sideText() {
+        return "Your side: " + (ClientVs.pickBoyfriend ? "Boyfriend" : "Opponent");
+    }
 
     public void renderFilesCheckboxes(List<String> fileNames, Map<Checkbox, Integer> checkboxes, Set<Integer> selected) {
         checkboxes.clear();

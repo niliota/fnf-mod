@@ -10,6 +10,8 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.niliota.fnfmod.Judging.PlayStats;
 import net.niliota.fnfmod.Judging.Rating;
+import net.niliota.fnfmod.network.ClientVs;
+import net.niliota.fnfmod.network.VsScore;
 
 import java.util.Locale;
 
@@ -53,6 +55,15 @@ public class GameplayHud {
 
             // Score line above it, same text as Psych
             context.drawCenteredString(font, scoreLine(stats), screenWidth / 2, barY - font.lineHeight - 3, 0xFFFFFFFF);
+
+            // VS: the rival's live score, above mine (below the bar with downscroll, where there's room)
+            if (Gameplay.vs) {
+                VsScore rival = ClientVs.rivalScore;
+                String rivalLine = ClientVs.rivalName + ": " + (rival == null ? "..." : String.format(Locale.ROOT,
+                        "Score: %d | Misses: %d | Accuracy: %.2f%%", rival.score(), rival.misses(), rival.accuracy() * 100));
+                int rivalY = FnfOptions.downscroll ? barY + HEALTH_BAR_HEIGHT + 4 : barY - 2 * font.lineHeight - 6;
+                context.drawCenteredString(font, rivalLine, screenWidth / 2, rivalY, 0xFFFF7777);
+            }
 
             // Rating popup, fades out
             long age = System.currentTimeMillis() - lastRatingTime;

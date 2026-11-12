@@ -30,6 +30,7 @@ public class FNFmod implements ModInitializer {
 		// Networking: register all packets, then the server side of sending songs to players
 		ModPayloads.register();
 		SongSender.register();
+		VsManager.register();
 
 		LOGGER.info("Gonna FNF it so good!");
 		List<Path> packs = PackManager.findPacks();

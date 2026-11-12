@@ -3,10 +3,12 @@ package net.niliota.fnfmod;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.niliota.fnfmod.network.ClientVs;
 
 // The FNF-style camera: looks at the player from the side, like an FNF stage.
 // The player stands on the right of the screen facing left (like boyfriend), with room on the left for the opponent.
@@ -74,16 +76,37 @@ public class FnfCamera {
     // Where the camera goes this frame. Called by CameraMixin at the end of Minecraft's own camera setup.
     public static Placement place(BlockGetter level, Entity entity, float partialTick) {
         Vec3 feet = entity.getPosition(partialTick); // smooth position between ticks
-        Vec3 playerForward = Vec3.directionFromRotation(0, lockedYaw);
 
+        // VS: frame both players, with me on the right facing my rival on the left
+        if (Gameplay.vs && ClientVs.rivalId != null && Minecraft.getInstance().level != null) {
+            Player rival = Minecraft.getInstance().level.getPlayerByUUID(ClientVs.rivalId);
+            if (rival != null && rival != entity && rival.distanceTo(entity) < 48) {
+                Vec3 rivalFeet = rival.getPosition(partialTick);
+                double dx = rivalFeet.x - feet.x, dz = rivalFeet.z - feet.z;
+                double separation = Math.sqrt(dx * dx + dz * dz);
+                if (separation > 0.5) {
+                    float facingRival = (float) Math.toDegrees(Math.atan2(-dx, dz)); // the yaw that looks from me to them
+                    Vec3 middle = feet.add(rivalFeet).scale(0.5).add(0, FOCUS_HEIGHT, 0);
+                    // far enough back to fit both, at least the chosen distance
+                    double distance = Math.max(FnfOptions.cameraDistance, separation * 0.6 + 2);
+                    return placeAround(level, entity, middle, facingRival, distance);
+                }
+            }
+        }
+
+        Vec3 playerForward = Vec3.directionFromRotation(0, lockedYaw);
         // the point the camera looks at: a bit in front of the player, where the opponent would be
         Vec3 focus = feet.add(playerForward.scale(FOCUS_AHEAD)).add(0, FOCUS_HEIGHT, 0);
+        return placeAround(level, entity, focus, lockedYaw, FnfOptions.cameraDistance);
+    }
 
+    // The camera looks at "focus" from the side of someone facing "facingYaw", from "distance" blocks away.
+    private static Placement placeAround(BlockGetter level, Entity entity, Vec3 focus, float facingYaw, double distance) {
         // Looking at the player's side: turned 90 degrees from where they face.
         // (+90 puts the player's front towards the left of the screen, so they face left like boyfriend)
-        float yaw = lockedYaw + 90;
+        float yaw = facingYaw + 90;
         Vec3 cameraForward = Vec3.directionFromRotation(PITCH, yaw);
-        Vec3 wanted = focus.subtract(cameraForward.scale(FnfOptions.cameraDistance));
+        Vec3 wanted = focus.subtract(cameraForward.scale(distance));
 
         // if a wall is in the way, come closer instead of looking through it (like vanilla third person)
         HitResult hit = level.clip(new ClipContext(focus, wanted, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, entity));

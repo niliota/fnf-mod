@@ -119,7 +119,9 @@ public class ClientNetworking {
         // charts without a speed get 1, so the notes still move
         chart.scrollSpeeds = new ScrollSpeeds(song.scrollSpeed() > 0 ? song.scrollSpeed() : 1, new ArrayList<>(song.scrollChanges()));
         LOGGER.info("Starting {} ({} notes, bpm {}, speed {})", song.songName(), song.notes().size(), song.bpm(), song.scrollSpeed());
-        // the tracks start playing when the countdown ends (see Gameplay)
-        Gameplay.startGameplay(chart, allTracks);
+        // the tracks start playing when the countdown ends (see Gameplay).
+        // In VS the song waits until the rival has it loaded too, the server says when to start (ClientVs).
+        if (ClientVs.state == VsMatchPayload.LOADING) ClientVs.songLoaded(chart, allTracks);
+        else Gameplay.startGameplay(chart, allTracks);
     }
 }

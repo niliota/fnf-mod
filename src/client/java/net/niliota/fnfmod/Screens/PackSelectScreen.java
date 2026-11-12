@@ -5,14 +5,14 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.niliota.fnfmod.Audio.AudioManager;
 import net.niliota.fnfmod.ClientSongCatalog;
 import net.niliota.fnfmod.Gameplay;
+import net.niliota.fnfmod.network.ClientVs;
 import net.niliota.fnfmod.network.SongCatalogPayload;
 
 import java.util.List;
 
-// First menu: lists the FNF mods (packs) the server has. Opened with the menu key (O).
+// First menu (the Mic menu): lists the FNF mods (packs) the server has, plus Options and VS. Opened by right-clicking with the Mic.
 public class PackSelectScreen extends Screen {
     public List<SongCatalogPayload.PackEntry> packs;
 
@@ -44,8 +44,7 @@ public class PackSelectScreen extends Screen {
         }
 
         Button stopButton = Button.builder(Component.nullToEmpty("Stop playing"), (btn) -> {
-            AudioManager.stopAllTracks();
-            Gameplay.stopGameplay();
+            Gameplay.stopByPlayer(); // in VS this counts as giving up
 
         }).bounds(200, 10, 120, 20).build();
         this.addRenderableWidget(stopButton);
@@ -53,8 +52,23 @@ public class PackSelectScreen extends Screen {
         // FNFmod's options (set once for every song)
         Button optionsButton = Button.builder(Component.nullToEmpty("Options"), (btn) -> {
             Minecraft.getInstance().setScreen(new FnfOptionsScreen(this));
-        }).bounds(330, 10, 80, 20).build();
+        }).bounds(200, 34, 120, 20).build();
         this.addRenderableWidget(optionsButton);
+
+        // VS: challenge someone, or leave the match while picking a song
+        if (ClientVs.inMatch()) {
+            Button cancelButton = Button.builder(Component.nullToEmpty("Cancel VS"), (btn) -> {
+                Minecraft.getInstance().player.connection.sendCommand("fnfvs cancel");
+                onClose();
+            }).bounds(200, 58, 120, 20).build();
+            this.addRenderableWidget(cancelButton);
+        } else {
+            Button challengeButton = Button.builder(Component.nullToEmpty("Challenge (VS)"), (btn) -> {
+                Minecraft.getInstance().setScreen(new VsPlayerListScreen(this));
+            }).bounds(200, 58, 120, 20).build();
+            challengeButton.active = ClientSongCatalog.received; // the server needs the mod
+            this.addRenderableWidget(challengeButton);
+        }
     }
 
     @Override
@@ -65,7 +79,8 @@ public class PackSelectScreen extends Screen {
         // We'll subtract the font height from the Y position to make the text appear above the button.
         // Subtracting an extra 10 pixels will give the text some padding.
         // textRenderer, text, x, y, color, hasShadow
-        context.drawString(this.font, "Choose a FNF mod", 40, 40 - this.font.lineHeight - 10, 0xFFFFFFFF, true);
+        String heading = ClientVs.inMatch() ? "VS " + ClientVs.rivalName + ": pick a song, first pick decides" : "Choose a FNF mod";
+        context.drawString(this.font, heading, 40, 40 - this.font.lineHeight - 10, ClientVs.inMatch() ? 0xFF55FFFF : 0xFFFFFFFF, true);
 
         // let the player know why the list is empty
         if (!ClientSongCatalog.received) {

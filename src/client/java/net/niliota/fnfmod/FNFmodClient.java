@@ -15,6 +15,7 @@ import net.niliota.fnfmod.Audio.AudioTrack;
 import net.niliota.fnfmod.Screens.PackSelectScreen;
 import net.niliota.fnfmod.item.ModItems;
 import net.niliota.fnfmod.network.ClientNetworking;
+import net.niliota.fnfmod.network.ClientVs;
 import org.lwjgl.glfw.GLFW;
 
 public class FNFmodClient implements ClientModInitializer {
@@ -60,8 +61,9 @@ public class FNFmodClient implements ClientModInitializer {
 			return InteractionResultHolder.pass(stack);
 		});
 
-		// Receiving songs from the server
+		// Receiving songs from the server, and VS matches
 		ClientNetworking.init();
+		ClientVs.init();
 
 		RenderNotes.render();
 		// We initialize/register the HUDRenderCallback thing only once here, since it cannot be unregistered ever again.

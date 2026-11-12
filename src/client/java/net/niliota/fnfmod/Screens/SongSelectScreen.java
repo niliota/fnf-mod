@@ -76,8 +76,7 @@ public class SongSelectScreen extends Screen {
         }
 
         Button stopButton = Button.builder(Component.nullToEmpty("Stop playing"), (btn) -> {
-            AudioManager.stopAllTracks();
-            Gameplay.stopGameplay();
+            Gameplay.stopByPlayer(); // in VS this counts as giving up
 
 
         }).bounds(200, 10, 120, 20).build();

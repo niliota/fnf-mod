@@ -71,24 +71,32 @@ public class SongSender {
     }
 
     private static void onSongRequest(ServerPlayer player, RequestSongPayload request) {
+        SongDataPayload songData = buildSongData(player, request);
+        if (songData != null) ServerPlayNetworking.send(player, songData);
+    }
+
+    // Checks the request and loads the song (chart, timing, speed changes, audio hashes).
+    // Returns null if the request was invalid or the song couldn't be loaded (the player gets a message for the latter).
+    // Also used by VsManager, which sends the result to both players of a match.
+    public static SongDataPayload buildSongData(ServerPlayer player, RequestSongPayload request) {
         // Check everything the client sent, it could be anything.
-        if (!inRange(request.packId(), PackManager.packs.size())) return;
+        if (!inRange(request.packId(), PackManager.packs.size())) return null;
         FNFPack pack = PackManager.packs.get(request.packId());
 
-        if (!inRange(request.songId(), pack.songs.size())) return;
+        if (!inRange(request.songId(), pack.songs.size())) return null;
         FNFSong song = pack.songs.get(request.songId());
 
-        if (!inRange(request.chartId(), song.chartFiles.size())) return;
-        if (request.metadataId() != -1 && !inRange(request.metadataId(), song.metadataFiles.size())) return;
-        if (request.instIds().size() + request.voicesIds().size() > MAX_FILES_PER_REQUEST) return;
+        if (!inRange(request.chartId(), song.chartFiles.size())) return null;
+        if (request.metadataId() != -1 && !inRange(request.metadataId(), song.metadataFiles.size())) return null;
+        if (request.instIds().size() + request.voicesIds().size() > MAX_FILES_PER_REQUEST) return null;
 
         List<Path> audioFiles = new ArrayList<>();
         for (int id : request.instIds()) {
-            if (!inRange(id, song.audioInstFiles.size())) return;
+            if (!inRange(id, song.audioInstFiles.size())) return null;
             audioFiles.add(song.audioInstFiles.get(id));
         }
         for (int id : request.voicesIds()) {
-            if (!inRange(id, song.audioVoicesFiles.size())) return;
+            if (!inRange(id, song.audioVoicesFiles.size())) return null;
             audioFiles.add(song.audioVoicesFiles.get(id));
         }
 
@@ -99,7 +107,7 @@ public class SongSender {
             List<ChartNote> notes = ChartParser.parseNotes(chartFile, song.engineType);
             if (notes.size() > SongDataPayload.MAX_NOTES) {
                 player.sendSystemMessage(Component.literal("This chart has too many notes (" + notes.size() + ")."));
-                return;
+                return null;
             }
 
             // bpm and bpm changes, from wherever this chart's engine keeps them.
@@ -119,11 +127,12 @@ public class SongSender {
                 audioHashes.add(AudioHashes.hashOf(file));
             }
 
-            ServerPlayNetworking.send(player, new SongDataPayload(song.name, timing.startBpm, scrollSpeed, notes, timing.changes, scrollSpeeds.changes, audioHashes));
+            return new SongDataPayload(song.name, timing.startBpm, scrollSpeed, notes, timing.changes, scrollSpeeds.changes, audioHashes);
         } catch (Exception e) {
             // the full error stays in the server log, the player only gets a short message (errors can contain server paths)
             LOGGER.error("Couldn't load song {} from pack {}", song.name, pack.name, e);
             player.sendSystemMessage(Component.literal("Couldn't load " + song.name + ", the chart might be in a format that isn't supported yet."));
+            return null;
         }
     }
 

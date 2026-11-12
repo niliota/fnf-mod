@@ -12,6 +12,9 @@ import net.niliota.fnfmod.Audio.SongClock;
 import net.niliota.fnfmod.Charting.Chart;
 import net.niliota.fnfmod.Judging.JudgedNote;
 import net.niliota.fnfmod.Judging.NoteJudge;
+import net.niliota.fnfmod.network.ClientVs;
+import net.niliota.fnfmod.network.VsMatchPayload;
+import net.niliota.fnfmod.network.VsScore;
 
 import java.util.List;
 
@@ -22,8 +25,10 @@ import java.util.List;
 public class Gameplay {
     public static boolean running = false;
     public static Chart currentChart;
-    public static NoteJudge judge;          // the player's side
-    public static NoteJudge opponentJudge;  // the opponent's side, plays by itself
+    public static NoteJudge judge;          // the side I play
+    public static NoteJudge opponentJudge;  // the other side, plays by itself
+    public static boolean vs = false;       // this song is a VS match (see ClientVs)
+    public static boolean mySide = true;    // which chart side I play: true = boyfriend's notes, false = the opponent's (VS)
     public static double songPosition = 0;
 
     // Countdown before the music starts
@@ -111,7 +116,7 @@ public class Gameplay {
                 handleInput();
                 playOpponent();
 
-                if (judge.stats.isDead() && !FnfOptions.noFail) {
+                if (judge.stats.isDead() && !FnfOptions.noFail && !vs) { // no game over in VS, it goes by score
                     gameOver();
                     return;
                 }
@@ -165,7 +170,8 @@ public class Gameplay {
 
         int screenHeight = Minecraft.getInstance().getWindow().getGuiScaledHeight();
         // the speed right now (it can change during the song), every note on this side moves at it, like in Psych and Codename
-        double speed = currentChart.scrollSpeeds != null ? currentChart.scrollSpeeds.speedAt(songPosition, !isOpponent)
+        boolean boyfriendNotes = isOpponent != mySide; // which side of the chart these notes are
+        double speed = currentChart.scrollSpeeds != null ? currentChart.scrollSpeeds.speedAt(songPosition, boyfriendNotes)
                      : currentChart.scrollSpeed > 0 ? currentChart.scrollSpeed : 1;
         // same as Psych: 0.45 pixels per ms at 720p, times the scroll speed
         double pixelsPerMs = (screenHeight / 720.0) * 0.45 * speed;
@@ -313,8 +319,11 @@ public class Gameplay {
         musicStarted = false;
         countdownStartNanos = System.nanoTime();
         lastCountdownTick = -1;
-        judge = new NoteJudge(chart.notes, true, chart.bpm, chart.bpmChanges);
-        opponentJudge = new NoteJudge(chart.notes, false, chart.bpm, chart.bpmChanges);
+        // In VS I might play the opponent's notes. They're still drawn where my strums are, the other side where the opponent's are.
+        vs = ClientVs.state == VsMatchPayload.GO;
+        mySide = !vs || ClientVs.iAmBoyfriend;
+        judge = new NoteJudge(chart.notes, mySide, chart.bpm, chart.bpmChanges);
+        opponentJudge = new NoteJudge(chart.notes, !mySide, chart.bpm, chart.bpmChanges);
         SongClock.reset();
         lastHitTime = new double[] {-1000, -1000, -1000, -1000};
         opponentLastHitTime = new double[] {-1000, -1000, -1000, -1000};
@@ -332,9 +341,23 @@ public class Gameplay {
         if (FnfOptions.fnfCamera) FnfCamera.songStarted();
     }
 
-    // The music ended by itself, show how it went.
+    // The music ended by itself, show how it went. In VS the server also gets the final score and decides the winner.
     public static void songFinished() {
-        if (judge != null) GameplayHud.showResults("Song Cleared!", judge.stats);
+        if (judge != null) {
+            if (vs) {
+                ClientVs.sendScore(VsScore.FINISHED);
+                GameplayHud.showResults("Song Finished! Waiting for " + ClientVs.rivalName + "'s result...", judge.stats);
+            } else {
+                GameplayHud.showResults("Song Cleared!", judge.stats);
+            }
+        }
+        stopGameplay();
+    }
+
+    // The player pressed "Stop playing". In VS that's giving up.
+    public static void stopByPlayer() {
+        if (running && vs) ClientVs.sendScore(VsScore.GAVE_UP);
+        AudioManager.stopAllTracks();
         stopGameplay();
     }
 
@@ -354,6 +377,8 @@ public class Gameplay {
         musicStarted = false;
         tracksToStart = null;
         paused = false;
+        vs = false;
+        mySide = true;
 
         FnfCamera.songEnded(); // back to first person if the FNF camera was on
     }
