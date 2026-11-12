@@ -2,7 +2,6 @@ package net.niliota.fnfmod;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.ChatFormatting;
@@ -14,9 +13,6 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
-import net.niliota.fnfmod.item.ModItems;
 import net.niliota.fnfmod.network.SongDataPayload;
 import net.niliota.fnfmod.network.VsEventsPayload;
 import net.niliota.fnfmod.network.VsMatchPayload;
@@ -36,13 +32,14 @@ import java.util.UUID;
 
 // Runs VS matches on the server: two players play the same song on opposite sides, the higher score wins.
 //
-//  1. challenge   - right-click a player with the Mic, or pick them in the Mic menu (/fnfvs challenge <player>).
+//  1. challenge   - right-click a player with the Mic, or pick them in the Mic menu. Both run /fnfvs challenge <player>.
 //                   They get a chat message with clickable [Accept] [Decline] (/fnfvs accept|decline <player>), valid for 30 s.
 //  2. picking     - both get the song menus, whoever picks a song first decides the song and their side.
 //  3. loading     - both get the song (same as a normal song request) and load it, then say they're ready.
 //  4. playing     - when both are ready, both countdowns start at the same time. Scores and every press/hit/miss
 //                   get passed between them, so each sees the other's side live.
-//  5. results     - when both finished (or 15 s after the first one did), the higher score wins. Leaving or stopping = losing.
+//  5. results     - when both finished (or 15 s after the first one did), the higher score wins.
+//                   Stopping the song or leaving = losing, and ends the match right away.
 // /fnfvs cancel ends the match at any point.
 public class VsManager {
     private static final int CHALLENGE_TICKS = 30 * 20;    // a challenge is valid for 30 seconds
@@ -96,13 +93,8 @@ public class VsManager {
                         }))
         ));
 
-        // Right-clicking a player with the Mic challenges them.
-        // SUCCESS on both sides, so the Mic doesn't also open its menu on the client.
-        UseEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> {
-            if (!player.getItemInHand(hand).is(ModItems.MIC) || !(entity instanceof Player)) return InteractionResult.PASS;
-            if (player instanceof ServerPlayer from && entity instanceof ServerPlayer to) challenge(from, to);
-            return InteractionResult.SUCCESS;
-        });
+        // (Right-clicking a player with the Mic is handled on the client, see FNFmodClient: only the client knows
+        //  if a song is playing, and then the Mic should open its menu instead of challenging.)
 
         ServerPlayNetworking.registerGlobalReceiver(VsPickPayload.TYPE, (payload, context) -> onPick(context.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(VsReadyPayload.TYPE, (payload, context) -> onReady(context.player()));
@@ -242,7 +234,9 @@ public class VsManager {
         if (rival != null) ServerPlayNetworking.send(rival, new VsRivalScorePayload(score));
 
         if (score.isDone() && match.firstDoneAt < 0) match.firstDoneAt = tick;
-        if (isDone(match.aScore) && isDone(match.bScore)) finishMatch(match, player.getServer());
+
+        // giving up ends the match right away, the rival doesn't have to keep playing for nothing
+        if (score.status() == VsScore.GAVE_UP || (isDone(match.aScore) && isDone(match.bScore))) finishMatch(match, player.getServer());
     }
 
     // a player's presses/hits/misses, passed straight on to their rival
@@ -293,6 +287,7 @@ public class VsManager {
         String aName = nameOf(server, match.a), bName = nameOf(server, match.b);
         int result = VsScore.compare(match.aScore, match.bScore);
         String verdict = result > 0 ? aName + " wins!" : result < 0 ? bName + " wins!" : "It's a draw!";
+        if (gaveUp(match.aScore) != gaveUp(match.bScore)) verdict = (gaveUp(match.aScore) ? aName : bName) + " gave up, " + verdict;
 
         String message = "VS " + match.songName + ": " + verdict
                 + "\n" + scoreLine(aName, match.aScore)
@@ -318,6 +313,10 @@ public class VsManager {
         if (score.status() == VsScore.GAVE_UP) return "  " + name + ": gave up";
         return String.format(Locale.ROOT, "  %s: %d points, %.2f%%, %d misses, max combo %d",
                 name, score.score(), score.accuracy() * 100, score.misses(), score.maxCombo());
+    }
+
+    private static boolean gaveUp(VsScore score) {
+        return score != null && score.status() == VsScore.GAVE_UP;
     }
 
     private static boolean isDone(VsScore score) {

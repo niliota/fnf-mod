@@ -4,11 +4,14 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.niliota.fnfmod.Audio.AudioManager;
 import net.niliota.fnfmod.Audio.AudioTrack;
@@ -49,6 +52,16 @@ public class FNFmodClient implements ClientModInitializer {
 			FnfCamera.tick(client);
 		});
 
+
+		// Right-clicking a player with the Mic challenges them to VS, unless a song is playing or I'm already in a match:
+		// then it does nothing special, and the Mic opens its menu like it does anywhere else (below).
+		UseEntityCallback.EVENT.register((player, level, hand, entity, hitResult) -> {
+			if (!level.isClientSide() || !player.getItemInHand(hand).is(ModItems.MIC) || !(entity instanceof Player target)) return InteractionResult.PASS;
+			if (Gameplay.running || ClientVs.inMatch()) return InteractionResult.PASS;
+
+			Minecraft.getInstance().player.connection.sendCommand("fnfvs challenge " + target.getGameProfile().getName());
+			return InteractionResult.SUCCESS; // challenged, so don't also open the menu
+		});
 
 		// Right-clicking with the Mic opens the menu. PASS lets the item do its own thing too (sound, cooldown).
 		UseItemCallback.EVENT.register((player, level, hand) -> {
