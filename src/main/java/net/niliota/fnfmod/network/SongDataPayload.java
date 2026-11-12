@@ -4,18 +4,20 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import net.niliota.fnfmod.Charting.BpmChange;
 import net.niliota.fnfmod.Charting.ChartNote;
 
 import java.util.ArrayList;
 import java.util.List;
 
 // Server -> client, the answer to RequestSongPayload.
-// The chart is already parsed by the server, so the client only gets the notes (both sides) and the song's info.
+// The chart is already parsed by the server, so the client only gets the notes (both sides) and the song's info (bpm, bpm changes, speed).
 // The audio files are only named by their hash, the client then checks if it has them or needs to download them.
 public record SongDataPayload(String songName,
                               int bpm,
                               double scrollSpeed,
                               List<ChartNote> notes,
+                              List<BpmChange> bpmChanges,
                               List<String> audioHashes
 ) implements CustomPacketPayload {
 
@@ -39,6 +41,12 @@ public record SongDataPayload(String songName,
                     buf.writeBoolean(note.isPlayer);
                 }
 
+                buf.writeVarInt(payload.bpmChanges().size());
+                for (BpmChange change : payload.bpmChanges()) {
+                    buf.writeDouble(change.time());
+                    buf.writeDouble(change.bpm());
+                }
+
                 buf.writeCollection(payload.audioHashes(), FriendlyByteBuf::writeUtf);
             },
             buf -> {
@@ -57,8 +65,14 @@ public record SongDataPayload(String songName,
                     notes.add(note);
                 }
 
+                List<BpmChange> bpmChanges = new ArrayList<>();
+                int changeCount = buf.readVarInt();
+                for (int i = 0; i < changeCount; i++) {
+                    bpmChanges.add(new BpmChange(buf.readDouble(), buf.readDouble()));
+                }
+
                 List<String> audioHashes = buf.readList(FriendlyByteBuf::readUtf);
-                return new SongDataPayload(songName, bpm, scrollSpeed, notes, audioHashes);
+                return new SongDataPayload(songName, bpm, scrollSpeed, notes, bpmChanges, audioHashes);
             }
     );
 

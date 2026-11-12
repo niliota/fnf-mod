@@ -114,6 +114,7 @@ public class ClientNetworking {
         AudioManager.playAll(allTracks);
 
         Chart chart = new Chart(song.scrollSpeed(), song.notes(), song.bpm());
+        chart.bpmChanges = song.bpmChanges();
         LOGGER.info("Starting {} ({} notes, bpm {}, speed {})", song.songName(), song.notes().size(), song.bpm(), song.scrollSpeed());
         Gameplay.startGameplay(chart);
     }

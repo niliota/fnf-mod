@@ -79,6 +79,7 @@ public class FNFSong {
                         .collect(Collectors.toList());
 
                 for (Path file : files) {
+                    if (isInAutosaves(songDir, file)) continue; // chart editor backups, not real charts
                     String filename = file.getFileName().toString().toLowerCase();
                     if (!filename.contains("meta") && filename.endsWith(".json") && !filename.contains("events"))       chartFiles.add(file);
                     if (filename.contains("meta") && filename.endsWith(".json"))                                        metadataFiles.add(file);
@@ -87,6 +88,15 @@ public class FNFSong {
                 }
             } catch (IOException e) { e.printStackTrace(); }
         }
+    }
+
+    // true if the file is somewhere inside an "autosaves" folder (Codename's chart editor puts backups there)
+    private static boolean isInAutosaves(Path songDir, Path file) {
+        for (Path folder : songDir.relativize(file)) {
+            String name = folder.toString().toLowerCase();
+            if (name.equals("autosaves") || name.equals("autosave")) return true;
+        }
+        return false;
     }
 
 }

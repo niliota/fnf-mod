@@ -3,6 +3,7 @@ package net.niliota.fnfmod.network;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
+import net.niliota.fnfmod.Charting.BpmChange;
 import net.niliota.fnfmod.Charting.ChartNote;
 import org.junit.jupiter.api.Test;
 
@@ -49,13 +50,15 @@ class PayloadCodecTest {
         note.length = 250;
         note.isPlayer = true;
 
-        SongDataPayload song = new SongDataPayload("roses", 120, 1.8, List.of(note), List.of("a".repeat(40)));
+        SongDataPayload song = new SongDataPayload("roses", 120, 1.8, List.of(note),
+                List.of(new BpmChange(0, 120), new BpmChange(5000, 180)), List.of("a".repeat(40)));
         SongDataPayload result = roundTrip(SongDataPayload.CODEC, song);
 
         assertEquals("roses", result.songName());
         assertEquals(120, result.bpm());
         assertEquals(1.8, result.scrollSpeed());
         assertEquals(song.audioHashes(), result.audioHashes());
+        assertEquals(song.bpmChanges(), result.bpmChanges());
 
         ChartNote resultNote = result.notes().get(0);
         assertEquals(1234.5, resultNote.time);
@@ -71,7 +74,7 @@ class PayloadCodecTest {
         for (int i = 0; i < SongDataPayload.MAX_NOTES; i++) notes.add(new ChartNote());
 
         FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-        SongDataPayload.CODEC.encode(buf, new SongDataPayload("big", 100, 2, notes, List.of()));
+        SongDataPayload.CODEC.encode(buf, new SongDataPayload("big", 100, 2, notes, List.of(), List.of()));
         assertTrue(buf.readableBytes() < 1024 * 1024, "SongDataPayload was " + buf.readableBytes() + " bytes");
     }
 

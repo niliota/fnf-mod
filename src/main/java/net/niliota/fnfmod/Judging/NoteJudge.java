@@ -1,5 +1,6 @@
 package net.niliota.fnfmod.Judging;
 
+import net.niliota.fnfmod.Charting.BpmChange;
 import net.niliota.fnfmod.Charting.ChartNote;
 
 import java.util.ArrayList;
@@ -22,13 +23,20 @@ public class NoteJudge {
     // every note before this one is done, so we don't have to look at them anymore
     private int firstActive = 0;
 
-    // playerSide = true to play boyfriend's notes, false for the opponent's (for VS later)
+    // playerSide = true to play boyfriend's notes, false for the opponent's
     public NoteJudge(List<ChartNote> chartNotes, boolean playerSide, double bpm) {
-        // Psych cuts holds into steps (a quarter of a beat). Charts without a bpm get 100 so it still works.
-        double stepCrochet = 60000.0 / (bpm > 0 ? bpm : 100) / 4.0;
+        this(chartNotes, playerSide, bpm, List.of());
+    }
 
+    // Same, but holds use the bpm at their own time if the song changes bpm.
+    public NoteJudge(List<ChartNote> chartNotes, boolean playerSide, double bpm, List<BpmChange> bpmChanges) {
         for (ChartNote note : chartNotes) {
-            if (note.isPlayer == playerSide) notes.add(new JudgedNote(note, stepCrochet));
+            if (note.isPlayer != playerSide) continue;
+
+            double noteBpm = bpmChanges.isEmpty() ? bpm : BpmChange.bpmAt(bpmChanges, note.time);
+            // Psych cuts holds into steps (a quarter of a beat). Charts without a bpm get 100 so it still works.
+            double stepCrochet = 60000.0 / (noteBpm > 0 ? noteBpm : 100) / 4.0;
+            notes.add(new JudgedNote(note, stepCrochet));
         }
         notes.sort((a, b) -> Double.compare(a.note.time, b.note.time));
     }
@@ -55,6 +63,26 @@ public class NoteJudge {
         stats.hit(target.rating);
         removeDuplicates(target);
         return target;
+    }
+
+    // Plays by itself, perfectly, like the opponent in FNF: every note is hit right on time and every hold is held.
+    // Returns the notes that got hit this frame (to make the strums glow). Doesn't touch the stats.
+    public List<JudgedNote> autoPlay(double songPosition) {
+        List<JudgedNote> hits = new ArrayList<>();
+        for (int i = firstActive; i < notes.size(); i++) {
+            JudgedNote n = notes.get(i);
+            if (n.note.time > songPosition) break;
+
+            if (!n.hit && !n.missed) {
+                n.hit = true;
+                n.rating = Rating.SICK;
+                hits.add(n);
+                removeDuplicates(n);
+            }
+        }
+
+        update(songPosition, new boolean[] {true, true, true, true});
+        return hits;
     }
 
     // Called every frame. held[lane] = is that key held down right now.

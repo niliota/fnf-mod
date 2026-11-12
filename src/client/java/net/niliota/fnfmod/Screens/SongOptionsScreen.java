@@ -103,6 +103,22 @@ public class SongOptionsScreen extends Screen {
                 .onValueChange((checkbox, value) -> Gameplay.noFail = value)
                 .build();
         this.addRenderableWidget(noFailCheckbox);
+
+        // Middle scroll: the player's strums in the middle of the screen
+        Checkbox middleScrollCheckbox = Checkbox.builder(Component.literal("Middle scroll"), this.font)
+                .pos(200, 56)
+                .selected(Gameplay.middleScroll)
+                .onValueChange((checkbox, value) -> Gameplay.middleScroll = value)
+                .build();
+        this.addRenderableWidget(middleScrollCheckbox);
+
+        // Show the opponent's notes, they play by themselves
+        Checkbox opponentCheckbox = Checkbox.builder(Component.literal("Show opponent"), this.font)
+                .pos(200, 78)
+                .selected(Gameplay.showOpponent)
+                .onValueChange((checkbox, value) -> Gameplay.showOpponent = value)
+                .build();
+        this.addRenderableWidget(opponentCheckbox);
     }
 
     @Override

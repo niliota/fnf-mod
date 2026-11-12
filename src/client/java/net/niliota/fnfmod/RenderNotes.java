@@ -91,6 +91,24 @@ public class RenderNotes {
             }
 
 
+            // Opponent's strums (if turned on). They glow when the opponent hits a note, there's no pressing for them.
+            if (Gameplay.showOpponent) {
+                context.setColor(1f, 1f, 1f, Gameplay.opponentAlpha());
+                for (int lane = 0; lane < 4; lane++) {
+                    int laneX = Gameplay.opponentLaneX(lane);
+                    boolean justHit = Gameplay.songPosition - Gameplay.opponentLastHitTime[lane] < 150;
+                    if (Gameplay.running && (justHit || Gameplay.opponentHolding[lane])) {
+                        int glowSize = Math.round(32 * 205f / 156f);
+                        int offset = (glowSize - 32) / 2;
+                        Arrow.glow(lane).draw(context, noteSpriteAtlas, laneX - offset, y - offset, glowSize, glowSize);
+                    } else {
+                        Arrow.strum(lane).draw(context, noteSpriteAtlas, laneX, y);
+                    }
+                }
+                context.setColor(1f, 1f, 1f, 1f);
+            }
+
+
             // Unfix transparency
             RenderSystem.disableBlend();
         });

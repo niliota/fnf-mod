@@ -184,6 +184,99 @@ public class ChartParser {
     }
 
 
+    // Finds every bpm change in the chart and metadata files. startBpm is what getBpm() found.
+    // Each engine stores them differently:
+    //  * Psych/legacy - sections with "changeBPM": true. The time is found by adding up the length of every section
+    //                   before it, same as Psych's Conductor.mapBPMChanges() (a section is "sectionBeats" beats long, 4 if missing)
+    //  * Codename     - "BPM Change" events in the chart or in the song's events.json, with the time and the new bpm as the first param
+    //  * V-Slice      - "timeChanges" in the metadata file, each with "t" (time) and "bpm"
+    // The result always starts at time 0 with startBpm and is sorted by time.
+    public static List<BpmChange> getBpmChanges(List<Path> files, double startBpm) throws IOException {
+        List<BpmChange> changes = new ArrayList<>();
+
+        for (Path file : files) {
+            if (file == null) continue;
+            JSONObject root = new JSONObject(Files.readString(file));
+
+            if (root.optJSONArray("timeChanges") != null) { // V-Slice metadata
+                JSONArray timeChanges = root.getJSONArray("timeChanges");
+                for (int i = 0; i < timeChanges.length(); i++) {
+                    JSONObject change = timeChanges.getJSONObject(i);
+                    if (change.has("bpm")) changes.add(new BpmChange(change.optDouble("t", 0), change.getDouble("bpm")));
+                }
+            } else if (root.has("strumLines") || isCodenameEventsFile(root)) { // Codename chart or events.json
+                JSONArray events = root.optJSONArray("events");
+                if (events == null) continue;
+                for (int i = 0; i < events.length(); i++) {
+                    JSONObject event = events.optJSONObject(i);
+                    if (event == null || !"BPM Change".equals(event.optString("name"))) continue;
+                    JSONArray params = event.optJSONArray("params");
+                    if (params != null && params.length() > 0) changes.add(new BpmChange(event.optDouble("time", 0), params.getDouble(0)));
+                }
+            } else { // Psych / legacy sections
+                JSONObject song = root.optJSONObject("song");
+                if (song != null) root = song;
+                JSONArray sections = root.optJSONArray("notes");
+                if (sections == null) continue;
+
+                double curBpm = root.optDouble("bpm", startBpm);
+                if (curBpm <= 0) continue; // no bpm, so the section times can't be worked out
+                double totalPos = 0;
+                for (int i = 0; i < sections.length(); i++) {
+                    JSONObject section = sections.optJSONObject(i);
+                    if (section == null) continue;
+
+                    if (section.optBoolean("changeBPM", false) && section.has("bpm") && section.getDouble("bpm") != curBpm) {
+                        curBpm = section.getDouble("bpm");
+                        changes.add(new BpmChange(totalPos, curBpm));
+                    }
+
+                    // older engines have "lengthInSteps" (almost always 16 = 4 beats) instead of "sectionBeats"
+                    double beats = section.has("sectionBeats") ? section.optDouble("sectionBeats", 4)
+                                 : section.has("lengthInSteps") ? section.optDouble("lengthInSteps", 16) / 4
+                                 : 4;
+                    totalPos += (60 / curBpm) * 1000 / 4 * Math.round(beats * 4);
+                }
+            }
+        }
+
+        changes.removeIf(change -> change.bpm() <= 0);
+        changes.sort((a, b) -> Double.compare(a.time(), b.time()));
+
+        // anything before the first change plays at the starting bpm,
+        // and "changes" to the bpm it already is get skipped (V-Slice always lists the starting bpm at 0 again)
+        List<BpmChange> result = new ArrayList<>();
+        result.add(new BpmChange(0, startBpm));
+        for (BpmChange change : changes) {
+            BpmChange last = result.get(result.size() - 1);
+            if (change.bpm() == last.bpm()) continue;
+            if (change.time() <= 0) result.set(result.size() - 1, change); // a different bpm right at the start replaces it
+            else result.add(change);
+        }
+        return result;
+    }
+
+
+    // Codename can keep events in songs/<song>/events.json (shared by every difficulty): {"events": [{"name", "time", "params"}, ...]}
+    // Psych's events.json looks different (a "song" object with events as arrays), so it doesn't count.
+    private static boolean isCodenameEventsFile(JSONObject root) {
+        JSONArray events = root.optJSONArray("events");
+        return events != null && !root.has("song") && !root.has("notes") && (events.isEmpty() || events.optJSONObject(0) != null);
+    }
+
+    // Finds the song's events.json, next to the chart or one folder up (Codename: songs/<song>/charts/hard.json + songs/<song>/events.json).
+    // Returns null if there isn't one.
+    public static Path findEventsFile(Path chartFile) {
+        Path folder = chartFile.getParent();
+        for (int i = 0; i < 2 && folder != null; i++) {
+            Path events = folder.resolve("events.json");
+            if (Files.exists(events)) return events;
+            folder = folder.getParent();
+        }
+        return null;
+    }
+
+
     // This function "walks" through a JSON file to find the first key that matches the input.
     // If the value is per difficulty (like V-Slice's scrollSpeed), the preferred difficulty's value is used.
     public static double findKey(JSONObject json, String... keys) {

@@ -108,6 +108,84 @@ class ChartParserTest {
         assertEquals(150, ChartParser.getBpm(List.of(legacy)));
     }
 
+    @Test
+    void bpmChangesLegacySections() throws IOException {
+        // 100 bpm = 600 ms per beat, the first section is 4 beats = 2400 ms, then it switches to 200 bpm.
+        // The third section "changes" to 200 again, which isn't a real change. The 4th is 2 beats long (sectionBeats).
+        Path chart = tempDir.resolve("legacy.json");
+        Files.writeString(chart, """
+                {"song": {"bpm": 100, "notes": [
+                    {"sectionNotes": []},
+                    {"sectionNotes": [], "changeBPM": true, "bpm": 200},
+                    {"sectionNotes": [], "changeBPM": true, "bpm": 200},
+                    {"sectionNotes": [], "sectionBeats": 2},
+                    {"sectionNotes": [], "changeBPM": true, "bpm": 50}
+                ]}}
+                """);
+        List<BpmChange> changes = ChartParser.getBpmChanges(List.of(chart), 100);
+
+        // 2400 + 2 sections of 4 beats at 300 ms + 2 beats at 300 ms = 2400 + 2400 + 600
+        assertEquals(List.of(new BpmChange(0, 100), new BpmChange(2400, 200), new BpmChange(5400, 50)), changes);
+        assertEquals(200, BpmChange.bpmAt(changes, 3000));
+        assertEquals(100, BpmChange.bpmAt(changes, 0));
+    }
+
+    @Test
+    void bpmChangesCodenameEvents() throws IOException {
+        Path chart = tempDir.resolve("codename.json");
+        Files.writeString(chart, """
+                {"strumLines": [], "events": [
+                    {"name": "Camera Movement", "time": 0, "params": [1]},
+                    {"name": "BPM Change", "time": 16000, "params": [180]}
+                ]}
+                """);
+        assertEquals(List.of(new BpmChange(0, 120), new BpmChange(16000, 180)),
+                ChartParser.getBpmChanges(List.of(chart), 120));
+    }
+
+    @Test
+    void bpmChangesCodenameEventsFile() throws IOException {
+        // songs/<song>/charts/hard.json + songs/<song>/events.json
+        Path charts = Files.createDirectories(tempDir.resolve("redscreen").resolve("charts"));
+        Path chart = charts.resolve("hard.json");
+        Files.writeString(chart, "{\"strumLines\": [], \"events\": []}");
+        Files.writeString(tempDir.resolve("redscreen").resolve("events.json"),
+                "{\"events\": [{\"name\": \"BPM Change\", \"time\": 194157.3, \"params\": [205]}]}");
+
+        Path events = ChartParser.findEventsFile(chart);
+        assertNotNull(events);
+        assertEquals(205, BpmChange.bpmAt(ChartParser.getBpmChanges(java.util.Arrays.asList(chart, null, events), 160), 200000));
+    }
+
+    @Test
+    void psychEventsFileIsIgnored() throws IOException {
+        Path chart = tempDir.resolve("hard.json");
+        Files.writeString(chart, "{\"song\": {\"bpm\": 150, \"notes\": []}}");
+        Path events = tempDir.resolve("events.json");
+        Files.writeString(events, "{\"song\": {\"events\": [[1000, [[\"Change Scroll Speed\", \"2\", \"\"]]]], \"notes\": []}}");
+
+        assertEquals(List.of(new BpmChange(0, 150)), ChartParser.getBpmChanges(List.of(chart, events), 150));
+    }
+
+    @Test
+    void bpmChangesVSliceMetadata() throws IOException {
+        Path chart = tempDir.resolve("chart.json");
+        Files.writeString(chart, "{\"scrollSpeed\": {\"hard\": 2}, \"notes\": {\"hard\": []}}");
+        Path metadata = tempDir.resolve("metadata.json");
+        Files.writeString(metadata, "{\"timeChanges\": [{\"t\": 0, \"bpm\": 120}, {\"t\": 5000, \"bpm\": 150}]}");
+
+        List<BpmChange> changes = ChartParser.getBpmChanges(List.of(chart, metadata), 120);
+        assertEquals(150, BpmChange.bpmAt(changes, 6000));
+        assertEquals(120, BpmChange.bpmAt(changes, 4999));
+    }
+
+    @Test
+    void noBpmChanges() throws IOException {
+        Path chart = tempDir.resolve("plain.json");
+        Files.writeString(chart, "{\"song\": {\"bpm\": 150, \"notes\": [{\"sectionNotes\": []}]}}");
+        assertEquals(List.of(new BpmChange(0, 150)), ChartParser.getBpmChanges(List.of(chart), 150));
+    }
+
     // Real charts from different engines. Expected numbers were counted straight from the json files.
     @Test
     void exampleChartings() throws IOException {

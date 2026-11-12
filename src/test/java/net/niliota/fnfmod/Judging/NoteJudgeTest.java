@@ -1,5 +1,6 @@
 package net.niliota.fnfmod.Judging;
 
+import net.niliota.fnfmod.Charting.BpmChange;
 import net.niliota.fnfmod.Charting.ChartNote;
 import org.junit.jupiter.api.Test;
 
@@ -164,6 +165,28 @@ class NoteJudgeTest {
 
         assertEquals(1, judge.stats.totalPlayed);
         assertEquals(0, judge.stats.misses);
+    }
+
+    @Test
+    void holdsUseTheBpmAtTheirTime() {
+        // 150 bpm (100 ms steps) until 5000 ms, then 300 bpm (50 ms steps)
+        List<BpmChange> changes = List.of(new BpmChange(0, 150), new BpmChange(5000, 300));
+        NoteJudge judge = new NoteJudge(List.of(note(1000, 0, 400, true), note(6000, 0, 400, true)), true, 150, changes);
+
+        assertEquals(4, judge.notes.get(0).pieceCount);
+        assertEquals(8, judge.notes.get(1).pieceCount);
+    }
+
+    @Test
+    void opponentPlaysItself() {
+        NoteJudge opponent = new NoteJudge(List.of(note(1000, 1, 400, false)), false, BPM);
+
+        assertTrue(opponent.autoPlay(900).isEmpty(), "too early");
+        assertEquals(1, opponent.autoPlay(1000).size());
+        for (double t = 1000; t <= 1500; t += 16) opponent.autoPlay(t);
+
+        assertTrue(opponent.notes.get(0).isDone());
+        assertFalse(opponent.notes.get(0).missed);
     }
 
     @Test
