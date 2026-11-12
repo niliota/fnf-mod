@@ -30,12 +30,15 @@ public class ClientNetworking {
         ClientPlayNetworking.registerGlobalReceiver(SongDataPayload.TYPE, (payload, context) -> onSongData(payload));
         ClientPlayNetworking.registerGlobalReceiver(AudioChunkPayload.TYPE, (payload, context) -> onAudioChunk(payload));
 
-        // forget everything about the server when leaving it
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+        // forget everything about the server when leaving it (or a singleplayer world), and stop the song.
+        // OpenAL has to be used from the game's main thread, so the stopping is handed over to it.
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(() -> {
+            AudioManager.stopAllTracks();
+            Gameplay.stopGameplay(); // also puts the FNF camera back
             ClientSongCatalog.clear();
             AudioCache.cancelAll();
             pendingSong = null;
-        });
+        }));
 
         // "Downloading song..." text while waiting for audio files
         HudRenderCallback.EVENT.register((context, tickDelta) -> {
