@@ -3,7 +3,7 @@ package space.niliota.fnfmod;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 
-// The note sprites, all on one spritesheet (assets/fnfmod/note_assets.png, made by tools/make_note_sprites.py).
+// The note sprites, all on one spritesheet (assets/fnfmod/note_assets.png).
 // Each one is a rectangle on the sheet: x, y, width, height.
 public enum Arrow {
     LEFT  (0,   0, 160, 160),
