@@ -17,10 +17,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-          "net.niliota.fnfmod.FNFmod"
+          "space.niliota.fnfmod.FNFmod"
 		],
 		"client": [
-			"net.niliota.fnfmod.FNFmodClient"
+			"space.niliota.fnfmod.FNFmodClient"
 		]
 	},
 	"mixins": [
