@@ -1,3 +1,9 @@
 {
-  "item.fnfmod.mic": "Mic"
+  "item.fnfmod.mic": "Mic",
+
+  "category.fnfmod.keys": "FNFmod",
+  "key.fnfmod.left": "Left Arrow",
+  "key.fnfmod.down": "Down Arrow",
+  "key.fnfmod.up": "Up Arrow",
+  "key.fnfmod.right": "Right Arrow"
 }

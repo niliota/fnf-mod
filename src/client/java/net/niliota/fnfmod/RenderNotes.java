@@ -2,7 +2,6 @@ package net.niliota.fnfmod;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 
 public class RenderNotes {
@@ -23,12 +22,9 @@ public class RenderNotes {
             RenderSystem.defaultBlendFunc();
 
             // Always anchored to top-right, regardless of GUI scale
-            int elementWidth = 29; // width of 1 note (29px)
-            int offsetFromRight = 10;
-            int offsetFromTop = 5;
-
-            int x = Minecraft.getInstance().getWindow().getGuiScaledWidth() - elementWidth - offsetFromRight;
-            int y = offsetFromTop;
+            // (the layout lives in Gameplay, so the notes land exactly on these strums)
+            int x = Gameplay.laneX(3);
+            int y = Gameplay.strumY();
 
             // Main Rendering -----------------------------------------------
             // Left Arrow
@@ -81,6 +77,17 @@ public class RenderNotes {
                 FNFmodClient.noteManager.rightArrowState = true;
             } else {
                 FNFmodClient.noteManager.rightArrowState = false;
+            }
+
+
+            // Glow when a note was just hit, or while a hold note is being held
+            for (int lane = 0; lane < 4; lane++) {
+                boolean justHit = Gameplay.songPosition - Gameplay.lastHitTime[lane] < 150;
+                if (Gameplay.running && (justHit || Gameplay.holding[lane])) {
+                    int glowSize = Math.round(32 * 205f / 156f); // the glowing sprite is bigger than a normal arrow
+                    int offset = (glowSize - 32) / 2;
+                    Arrow.glow(lane).draw(context, noteSpriteAtlas, Gameplay.laneX(lane) - offset, y - offset, glowSize, glowSize);
+                }
             }
 
 

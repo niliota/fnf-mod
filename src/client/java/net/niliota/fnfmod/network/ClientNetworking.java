@@ -96,6 +96,9 @@ public class ClientNetworking {
 
     // Everything is here, load the audio and start playing.
     private static void startSong(SongDataPayload song) {
+        // close the menu, otherwise the arrow keys go to the menu instead of the game
+        Minecraft.getInstance().setScreen(null);
+
         List<AudioTrack> allTracks = new ArrayList<>();
         for (String hash : song.audioHashes()) {
             Path file = AudioCache.find(hash);

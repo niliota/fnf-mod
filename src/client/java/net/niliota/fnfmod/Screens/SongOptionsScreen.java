@@ -5,6 +5,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.niliota.fnfmod.Gameplay;
 import net.niliota.fnfmod.network.ClientNetworking;
 import net.niliota.fnfmod.network.RequestSongPayload;
 import net.niliota.fnfmod.network.SongCatalogPayload;
@@ -94,6 +95,14 @@ public class SongOptionsScreen extends Screen {
             ));
         }).bounds(200, 10, 120, 20).build();
         this.addRenderableWidget(startButton);
+
+        // No fail: health running out doesn't end the song (remembered for the next songs too)
+        Checkbox noFailCheckbox = Checkbox.builder(Component.literal("No fail"), this.font)
+                .pos(200, 34)
+                .selected(Gameplay.noFail)
+                .onValueChange((checkbox, value) -> Gameplay.noFail = value)
+                .build();
+        this.addRenderableWidget(noFailCheckbox);
     }
 
     @Override

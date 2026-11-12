@@ -10,7 +10,7 @@ import net.minecraft.world.item.Item;
 public class ModItems {
 
     // 1. Create the item(s)
-    public static final Item MIC = registerItem("mic", new Item(new Item.Properties()));
+    public static final Item MIC = registerItem("mic", new MicItem(new Item.Properties()));
 
     // A helper method to register items using Mojang mappings (instead of Yarn)
     private static Item registerItem(String name, Item item) {
