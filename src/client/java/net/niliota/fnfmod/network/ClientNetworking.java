@@ -110,12 +110,10 @@ public class ClientNetworking {
             allTracks.add(track);
         }
 
-        // Play all selected audio files
-        AudioManager.playAll(allTracks);
-
         Chart chart = new Chart(song.scrollSpeed(), song.notes(), song.bpm());
         chart.bpmChanges = song.bpmChanges();
         LOGGER.info("Starting {} ({} notes, bpm {}, speed {})", song.songName(), song.notes().size(), song.bpm(), song.scrollSpeed());
-        Gameplay.startGameplay(chart);
+        // the tracks start playing when the countdown ends (see Gameplay)
+        Gameplay.startGameplay(chart, allTracks);
     }
 }

@@ -7,10 +7,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import net.niliota.fnfmod.Audio.AudioManager;
+import net.niliota.fnfmod.Audio.AudioTrack;
 import net.niliota.fnfmod.Audio.SongClock;
 import net.niliota.fnfmod.Charting.Chart;
 import net.niliota.fnfmod.Judging.JudgedNote;
 import net.niliota.fnfmod.Judging.NoteJudge;
+
+import java.util.List;
 
 // Runs a song while it's playing: reads the arrow keys, lets NoteJudge decide hits and misses,
 // and draws the notes and their hold tails scrolling up towards the strums (drawn by RenderNotes).
@@ -22,6 +25,13 @@ public class Gameplay {
     public static NoteJudge judge;          // the player's side
     public static NoteJudge opponentJudge;  // the opponent's side, plays by itself
     public static double songPosition = 0;
+
+    // Countdown before the music starts
+    public static final int COUNTDOWN_BEATS = 5;   // the song's time starts this many beats before 0 (Psych: 5)
+    public static boolean musicStarted = false;    // false during the countdown
+    private static List<AudioTrack> tracksToStart; // loaded, waiting for the countdown to end
+    private static long countdownStartNanos;
+    private static int lastCountdownTick;
 
     // Options from the song options screen (remembered until the game closes)
     public static boolean noFail = false;       // health running out doesn't end the song
@@ -87,8 +97,8 @@ public class Gameplay {
             if (!running || judge == null) return;
             if (AudioManager.tracks.isEmpty()) return; // nothing to sync the notes to
 
-            // Used to sync the note time with the song's
-            songPosition = SongClock.update(AudioManager.tracks.get(0));
+            // Used to sync the note time with the song's (counts down before the music starts)
+            updateSongPosition();
 
             handleInput();
             playOpponent();
@@ -206,8 +216,47 @@ public class Gameplay {
         return new KeyMapping[] {FNFmodClient.leftKey, FNFmodClient.downKey, FNFmodClient.upKey, FNFmodClient.rightKey};
     }
 
-    public static void startGameplay(Chart chart) {
+    // Before the music starts there's a countdown, like Psych's startCountdown(): the song's time starts
+    // COUNTDOWN_BEATS beats before 0 and counts up by itself, with "3, 2, 1, GO!" one beat apart.
+    // At 0 the music starts, and from then on the time follows the audio (SongClock).
+    private static void updateSongPosition() {
+        if (musicStarted) {
+            songPosition = SongClock.update(AudioManager.tracks.get(0));
+            return;
+        }
+
+        double crochet = crochet();
+        songPosition = -crochet * COUNTDOWN_BEATS + (System.nanoTime() - countdownStartNanos) / 1_000_000.0;
+
+        // one countdown tick per beat, starting one beat in: 0 = "3", 1 = "2", 2 = "1", 3 = "GO!"
+        int tick = (int) Math.floor((songPosition + crochet * COUNTDOWN_BEATS) / crochet) - 1;
+        if (tick > lastCountdownTick && tick <= 3) {
+            lastCountdownTick = tick;
+            GameplayHud.countdownTick(tick, crochet);
+        }
+
+        if (songPosition >= 0) {
+            // Play all selected audio files at the same instant
+            AudioManager.playAll(tracksToStart);
+            musicStarted = true;
+            SongClock.reset();
+            songPosition = SongClock.update(AudioManager.tracks.get(0));
+        }
+    }
+
+    // length of one beat in ms, at the song's starting bpm (Psych's Conductor.crochet)
+    private static double crochet() {
+        double bpm = currentChart.bpm > 0 ? currentChart.bpm : 100;
+        return 60000.0 / bpm;
+    }
+
+    // tracks = the loaded audio, they start playing when the countdown ends
+    public static void startGameplay(Chart chart, List<AudioTrack> tracks) {
         currentChart = chart;
+        tracksToStart = tracks;
+        musicStarted = false;
+        countdownStartNanos = System.nanoTime();
+        lastCountdownTick = -1;
         judge = new NoteJudge(chart.notes, true, chart.bpm, chart.bpmChanges);
         opponentJudge = new NoteJudge(chart.notes, false, chart.bpm, chart.bpmChanges);
         SongClock.reset();
@@ -244,5 +293,7 @@ public class Gameplay {
         currentChart = null;
         judge = null;
         opponentJudge = null;
+        musicStarted = false;
+        tracksToStart = null;
     }
 }

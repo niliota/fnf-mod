@@ -57,7 +57,7 @@ public class FNFmodClient implements ClientModInitializer {
 
 		// Check if music has ended every tick. (Seems not very efficient)
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-			if (RenderNotes.visible) {
+			if (RenderNotes.visible && Gameplay.musicStarted) { // during the countdown nothing is playing yet
 				boolean anyPlaying = AudioManager.tracks.stream().anyMatch(AudioTrack::isPlaying);
 
 				if (!anyPlaying) {
