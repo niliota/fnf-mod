@@ -14,7 +14,7 @@ import java.util.List;
 // The chart is already parsed by the server, so the client only gets the notes (both sides) and the song's info (bpm, bpm changes, speed).
 // The audio files are only named by their hash, the client then checks if it has them or needs to download them.
 public record SongDataPayload(String songName,
-                              int bpm,
+                              double bpm,
                               double scrollSpeed,
                               List<ChartNote> notes,
                               List<BpmChange> bpmChanges,
@@ -30,7 +30,7 @@ public record SongDataPayload(String songName,
     public static final StreamCodec<FriendlyByteBuf, SongDataPayload> CODEC = StreamCodec.of(
             (buf, payload) -> {
                 buf.writeUtf(payload.songName());
-                buf.writeVarInt(payload.bpm());
+                buf.writeDouble(payload.bpm());
                 buf.writeDouble(payload.scrollSpeed());
 
                 buf.writeVarInt(payload.notes().size());
@@ -51,7 +51,7 @@ public record SongDataPayload(String songName,
             },
             buf -> {
                 String songName = buf.readUtf();
-                int bpm = buf.readVarInt();
+                double bpm = buf.readDouble();
                 double scrollSpeed = buf.readDouble();
 
                 List<ChartNote> notes = new ArrayList<>();

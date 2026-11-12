@@ -31,12 +31,13 @@ public class SongOptionsScreen extends Screen {
     private final Map<Checkbox, Integer> checkboxToMetadataFile = new HashMap<>();
 
     // What's ticked, so it doesn't get lost when the checkboxes are rebuilt while scrolling.
-    // By default the first file of every list is ticked.
+    // By default the first file of every list is ticked, except metadata (automatic unless the player picks one).
     private final Set<Integer> selectedInst = new HashSet<>(Set.of(0));
     private final Set<Integer> selectedVoices = new HashSet<>(Set.of(0));
     private final Set<Integer> selectedChart = new HashSet<>(Set.of(0));
-    private final Set<Integer> selectedMetadata = new HashSet<>(Set.of(0));
+    private final Set<Integer> selectedMetadata = new HashSet<>(); // nothing ticked = the server finds the chart's own metadata
 
+    private boolean showAdvanced = false; // metadata checkboxes shown
     private int scrollOffset = 0;
     int x = 40; int y = 40;
 
@@ -70,9 +71,24 @@ public class SongOptionsScreen extends Screen {
         // List all chart files as checkboxes
         renderFilesCheckboxes(song.chartFiles(), checkboxToChartFile, selectedChart);
 
-        y += 20;
-        // List all json/chart files as checkboxes
-        renderFilesCheckboxes(song.metadataFiles(), checkboxToMetadataFile, selectedMetadata);
+        // Advanced: metadata files. The server picks the chart's own metadata by itself,
+        // so these are hidden unless the player wants to override that.
+        if (!song.metadataFiles().isEmpty()) {
+            y += 30;
+            Button advancedButton = Button.builder(Component.nullToEmpty(showAdvanced ? "Advanced: hide" : "Advanced..."), (btn) -> {
+                showAdvanced = !showAdvanced;
+                init();
+            }).bounds(x, y, 120, 20).build();
+            this.addRenderableWidget(advancedButton);
+
+            if (showAdvanced) {
+                y += 4;
+                // List all metadata files as checkboxes (none ticked = automatic)
+                renderFilesCheckboxes(song.metadataFiles(), checkboxToMetadataFile, selectedMetadata);
+            } else {
+                checkboxToMetadataFile.clear(); // hidden, the ticked ones are remembered in selectedMetadata
+            }
+        }
 
 
         // Start button, asks the server for the song. It answers with the chart and the song starts once the audio is here.
@@ -80,7 +96,9 @@ public class SongOptionsScreen extends Screen {
             List<Integer> instIds = selectedIds(checkboxToInstFile);
             List<Integer> voicesIds = selectedIds(checkboxToVoicesFile);
             List<Integer> chartIds = selectedIds(checkboxToChartFile);
-            List<Integer> metadataIds = selectedIds(checkboxToMetadataFile);
+            rememberSelection(checkboxToMetadataFile, selectedMetadata); // works whether the advanced options are open or not
+            List<Integer> metadataIds = new ArrayList<>(selectedMetadata);
+            metadataIds.sort(null);
 
             // can't play without a chart or without any audio
             if (chartIds.isEmpty() || (instIds.isEmpty() && voicesIds.isEmpty())) return;

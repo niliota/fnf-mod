@@ -3,6 +3,7 @@ package net.niliota.fnfmod;
 import net.niliota.fnfmod.Charting.BpmChange;
 import net.niliota.fnfmod.Charting.ChartNote;
 import net.niliota.fnfmod.Charting.ChartParser;
+import net.niliota.fnfmod.Charting.ChartTiming;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
@@ -11,6 +12,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -50,6 +52,8 @@ class RealPacksTest {
         long notesAfterChange = 0, onGridWithChanges = 0, onGridWithout = 0;
         List<String> worseCharts = new ArrayList<>();
         List<String> driftingCharts = new ArrayList<>();
+        long allNotes = 0, allOnGrid = 0;
+        List<String> bpmDifferences = new ArrayList<>();
         List<String> notCharts = new ArrayList<>();
 
         for (FNFPack pack : packs) {
@@ -72,11 +76,28 @@ class RealPacksTest {
                     dataFiles.add(chart);
                     dataFiles.add(song.metadataFiles.isEmpty() ? null : song.metadataFiles.get(0));
 
-                    int bpm = ChartParser.getBpm(dataFiles);
-                    double speed = ChartParser.getScrollSpeed(dataFiles);
-                    List<Path> bpmFiles = new ArrayList<>(dataFiles); // same as SongSender
-                    bpmFiles.add(ChartParser.findEventsFile(chart));
-                    List<BpmChange> changes = ChartParser.getBpmChanges(bpmFiles, bpm);
+                    // the old way (first metadata file, first "bpm" found), only to show what changed
+                    int oldBpm = ChartParser.getBpm(dataFiles);
+
+                    // same as SongSender with no metadata picked
+                    ChartTiming timing = ChartTiming.read(chart, null);
+                    List<BpmChange> changes = timing.changes;
+                    double speed = ChartParser.getScrollSpeed(Arrays.asList(chart, timing.metadataFile));
+                    int bpm = (int) timing.startBpm;
+
+                    int oldOnGrid = 0, newOnGrid = 0;
+                    for (ChartNote note : notes) {
+                        if (onGrid(note.time, List.of(new BpmChange(0, oldBpm > 0 ? oldBpm : 100)))) oldOnGrid++;
+                        if (onGrid(note.time, List.of(changes.get(0)))) newOnGrid++;
+                    }
+                    if (timing.startBpm != oldBpm) {
+                        bpmDifferences.add(String.format(Locale.ROOT, "%s / %s / %s: %d -> %s (%s), notes on its grid %.1f%% -> %.1f%%",
+                                pack.name, song.name, chart.getFileName(), oldBpm, timing.startBpm, timing.source,
+                                100.0 * oldOnGrid / Math.max(1, notes.size()), 100.0 * newOnGrid / Math.max(1, notes.size())));
+                        assertTrue(newOnGrid >= oldOnGrid, chart.getFileName() + " fits its notes worse with the new bpm than with the old one");
+                    }
+                    allNotes += notes.size();
+                    for (ChartNote note : notes) if (onGrid(note.time, changes)) allOnGrid++;
 
                     if (bpm <= 0) noBpm++;
                     if (speed <= 0) noSpeed++;
@@ -126,6 +147,11 @@ class RealPacksTest {
         assertTrue(onGridWithChanges > onGridWithout, "detected bpm changes should line notes up with the beat grid better");
         System.out.println("  charts without bpm changes that drift off their grid in the second half: " + driftingCharts);
 
+        System.out.println(String.format(Locale.ROOT, "All notes of all charts on the beat grid: %.2f%% (%d notes)",
+                100.0 * allOnGrid / Math.max(1, allNotes), allNotes));
+        System.out.println("Charts whose starting bpm differs from the old search (ChartParser.getBpm with the first metadata file):");
+        for (String difference : bpmDifferences) System.out.println("  " + difference);
+        assertTrue(allOnGrid > 0.95 * allNotes, "less than 95% of all notes are on the beat grid, something got worse");
         System.out.println("Charts: " + charts + ", parsed: " + parsed + ", with bpm changes: " + withChanges
                 + ", no bpm found: " + noBpm + ", no speed found: " + noSpeed);
         System.out.println("Couldn't parse " + notCharts.size() + " files, first few: " + notCharts.subList(0, Math.min(15, notCharts.size())));

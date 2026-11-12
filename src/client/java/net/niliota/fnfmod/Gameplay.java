@@ -53,6 +53,9 @@ public class Gameplay {
         int screenWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
         if (middleScroll) return screenWidth / 2 - 2 * NOTE_SIZE + lane * NOTE_SIZE;
 
+        // With the opponent shown: centered in the right half of the screen, like Psych (its strums sit in the middle of each half)
+        if (showOpponent) return screenWidth * 3 / 4 - 2 * NOTE_SIZE + lane * NOTE_SIZE;
+
         // rightmost note (lane 3) starts at offsetFromRight, others go left from there
         return screenWidth - NOTE_SIZE - OFFSET_FROM_RIGHT - (3 - lane) * NOTE_SIZE;
     }
@@ -64,8 +67,9 @@ public class Gameplay {
             if (lane < 2) return laneX(0) - GAP_BETWEEN_SIDES - (2 - lane) * NOTE_SIZE;
             return laneX(3) + NOTE_SIZE + GAP_BETWEEN_SIDES + (lane - 2) * NOTE_SIZE;
         }
-        // on its own side, the left side of the screen, like in FNF (mirrors the player's distance from the right edge)
-        return OFFSET_FROM_RIGHT + lane * NOTE_SIZE;
+        // centered in the left half of the screen, mirroring the player's strums in the right half (like Psych)
+        int screenWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
+        return screenWidth / 4 - 2 * NOTE_SIZE + lane * NOTE_SIZE;
     }
 
     // with middle scroll the opponent's side is faded out so it doesn't get in the way (Psych does the same)

@@ -9,7 +9,7 @@ public class Chart {
     public List<ChartNote> notes = new ArrayList<>();
     public List<BpmChange> bpmChanges = new ArrayList<>(); // empty = the bpm never changes
 
-    public Chart(double scrollSpeed, List<ChartNote> notes, int bpm) {
+    public Chart(double scrollSpeed, List<ChartNote> notes, double bpm) {
         this.scrollSpeed = scrollSpeed;
         this.notes = notes;
         this.bpm = bpm;

@@ -6,9 +6,9 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.niliota.fnfmod.Charting.BpmChange;
 import net.niliota.fnfmod.Charting.ChartNote;
 import net.niliota.fnfmod.Charting.ChartParser;
+import net.niliota.fnfmod.Charting.ChartTiming;
 import net.niliota.fnfmod.network.AudioChunkPayload;
 import net.niliota.fnfmod.network.AudioRequestPayload;
 import net.niliota.fnfmod.network.RequestSongPayload;
@@ -101,23 +101,22 @@ public class SongSender {
                 return;
             }
 
-            // speed and bpm can be in either the chart or the metadata file
+            // bpm and bpm changes, from wherever this chart's engine keeps them.
+            // No metadata picked = use the one that belongs to this chart (V-Slice variations, Codename meta.json)
+            ChartTiming timing = ChartTiming.read(chartFile, metadataFile);
+
+            // speed can be in either the chart or the metadata file
             List<Path> dataFiles = new ArrayList<>();
             dataFiles.add(chartFile);
-            dataFiles.add(metadataFile);
+            dataFiles.add(timing.metadataFile);
             double scrollSpeed = ChartParser.getScrollSpeed(dataFiles);
-            int bpm = ChartParser.getBpm(dataFiles);
-            // bpm changes can also be in the song's events.json (Codename)
-            List<Path> bpmFiles = new ArrayList<>(dataFiles);
-            bpmFiles.add(ChartParser.findEventsFile(chartFile));
-            List<BpmChange> bpmChanges = ChartParser.getBpmChanges(bpmFiles, bpm);
 
             List<String> audioHashes = new ArrayList<>();
             for (Path file : audioFiles) {
                 audioHashes.add(AudioHashes.hashOf(file));
             }
 
-            ServerPlayNetworking.send(player, new SongDataPayload(song.name, bpm, scrollSpeed, notes, bpmChanges, audioHashes));
+            ServerPlayNetworking.send(player, new SongDataPayload(song.name, timing.startBpm, scrollSpeed, notes, timing.changes, audioHashes));
         } catch (Exception e) {
             // the full error stays in the server log, the player only gets a short message (errors can contain server paths)
             LOGGER.error("Couldn't load song {} from pack {}", song.name, pack.name, e);
