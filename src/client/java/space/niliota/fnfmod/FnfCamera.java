@@ -89,7 +89,8 @@ public class FnfCamera {
                     Vec3 middle = feet.add(rivalFeet).scale(0.5).add(0, FOCUS_HEIGHT, 0);
                     // far enough back to fit both, at least the chosen distance
                     double distance = Math.max(FnfOptions.cameraDistance, separation * 0.6 + 2);
-                    return placeAround(level, entity, middle, facingRival, distance);
+                    // True POV on the opponent side: the camera looks from my right, so I'm on the left facing right
+                    return placeAround(level, entity, middle, facingRival, distance, Gameplay.sidesSwapped());
                 }
             }
         }
@@ -97,14 +98,15 @@ public class FnfCamera {
         Vec3 playerForward = Vec3.directionFromRotation(0, lockedYaw);
         // the point the camera looks at: a bit in front of the player, where the opponent would be
         Vec3 focus = feet.add(playerForward.scale(FOCUS_AHEAD)).add(0, FOCUS_HEIGHT, 0);
-        return placeAround(level, entity, focus, lockedYaw, FnfOptions.cameraDistance);
+        return placeAround(level, entity, focus, lockedYaw, FnfOptions.cameraDistance, false);
     }
 
     // The camera looks at "focus" from the side of someone facing "facingYaw", from "distance" blocks away.
-    private static Placement placeAround(BlockGetter level, Entity entity, Vec3 focus, float facingYaw, double distance) {
+    // meOnLeft = look from the other side, so the player is on the left of the screen facing right (True POV)
+    private static Placement placeAround(BlockGetter level, Entity entity, Vec3 focus, float facingYaw, double distance, boolean meOnLeft) {
         // Looking at the player's side: turned 90 degrees from where they face.
         // (+90 puts the player's front towards the left of the screen, so they face left like boyfriend)
-        float yaw = facingYaw + 90;
+        float yaw = facingYaw + (meOnLeft ? -90 : 90);
         Vec3 cameraForward = Vec3.directionFromRotation(PITCH, yaw);
         Vec3 wanted = focus.subtract(cameraForward.scale(distance));
 

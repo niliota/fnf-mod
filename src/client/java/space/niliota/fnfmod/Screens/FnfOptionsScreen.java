@@ -18,9 +18,15 @@ import java.util.function.DoubleSupplier;
 // FNFmod's options, opened with the "Options" button in the Mic menu. Set once and used for every song,
 // like Minecraft's own options. Saved to config/fnfmod.json when the screen is closed.
 public class FnfOptionsScreen extends Screen {
-    private static final int WIDTH = 200; // width of the column of options
+    private static final int WIDTH = 200; // width of the column of options (smaller if the window is narrower)
 
     private final Screen parent; // the screen to go back to
+
+    // The options scroll with the mouse wheel, so they fit at any GUI scale. Done stays at the bottom.
+    private int scrollOffset = 0;
+    private int maxScroll = 0;
+    private int contentTop, contentBottom; // the area the options are shown in
+    private int y;                         // where the next option goes
 
     public FnfOptionsScreen(Screen parent) {
         super(Component.literal("FNFmod Options"));
@@ -29,57 +35,89 @@ public class FnfOptionsScreen extends Screen {
 
     @Override
     protected void init() {
-        int x = this.width / 2 - WIDTH / 2;
-        int y = 40;
+        this.clearWidgets();
+        int columnWidth = Math.min(WIDTH, this.width - 20);
+        int x = this.width / 2 - columnWidth / 2;
+        contentTop = 30;
+        contentBottom = this.height - 44;
+        y = contentTop - scrollOffset;
 
         // Gameplay
-        addCheckbox(x, y, "No fail", FnfOptions.noFail, value -> FnfOptions.noFail = value);
-        y += 24;
-        addCheckbox(x, y, "Middle scroll", FnfOptions.middleScroll, value -> FnfOptions.middleScroll = value);
-        y += 24;
-        addCheckbox(x, y, "Downscroll", FnfOptions.downscroll, value -> FnfOptions.downscroll = value);
-        y += 24;
-        addCheckbox(x, y, "Show opponent", FnfOptions.showOpponent, value -> FnfOptions.showOpponent = value);
-        y += 30;
+        addCheckbox(x, "No fail", FnfOptions.noFail, value -> FnfOptions.noFail = value);
+        addCheckbox(x, "Middle scroll", FnfOptions.middleScroll, value -> FnfOptions.middleScroll = value);
+        addCheckbox(x, "Downscroll", FnfOptions.downscroll, value -> FnfOptions.downscroll = value);
+        addCheckbox(x, "Show opponent", FnfOptions.showOpponent, value -> FnfOptions.showOpponent = value);
+        // VS on the opponent side: my side on the left, so both players see the same stage
+        addCheckbox(x, "True POV (VS, opponent side)", FnfOptions.truePov, value -> FnfOptions.truePov = value);
 
         // Audio offset: if the music reaches your ears late (bluetooth headphones...), move this up until hits feel right
-        addSlider(x, y,
+        addSlider(x, columnWidth,
                 () -> (FnfOptions.audioOffset - FnfOptions.MIN_AUDIO_OFFSET) / (double)(FnfOptions.MAX_AUDIO_OFFSET - FnfOptions.MIN_AUDIO_OFFSET),
                 value -> FnfOptions.audioOffset = (int) Math.round(FnfOptions.MIN_AUDIO_OFFSET + value * (FnfOptions.MAX_AUDIO_OFFSET - FnfOptions.MIN_AUDIO_OFFSET)),
                 () -> "Audio offset: " + FnfOptions.audioOffset + " ms");
-        y += 30;
+        y += 6;
 
         // Camera
-        addCheckbox(x, y, "FNF camera (side view)", FnfOptions.fnfCamera, value -> FnfOptions.fnfCamera = value);
-        y += 24;
-        addSlider(x, y,
+        addCheckbox(x, "FNF camera (side view)", FnfOptions.fnfCamera, value -> FnfOptions.fnfCamera = value);
+        addSlider(x, columnWidth,
                 () -> (FnfOptions.cameraDistance - FnfCamera.MIN_DISTANCE) / (FnfCamera.MAX_DISTANCE - FnfCamera.MIN_DISTANCE),
                 value -> FnfOptions.cameraDistance = Math.round((FnfCamera.MIN_DISTANCE + value * (FnfCamera.MAX_DISTANCE - FnfCamera.MIN_DISTANCE)) * 2) / 2.0,
                 () -> String.format(Locale.ROOT, "Camera distance: %.1f", FnfOptions.cameraDistance));
-        y += 30;
+        y += 6;
 
         // Songs downloaded from servers (fnfcache/), with how much space they take. Asks before deleting.
         long cacheSize = AudioCache.cacheSize();
-        Button clearCacheButton = Button.builder(Component.literal("Clear downloaded songs (" + formatSize(cacheSize) + ")"), btn ->
-                this.minecraft.setScreen(new ConfirmScreen(confirmed -> {
-                    if (confirmed) AudioCache.clear();
-                    this.minecraft.setScreen(this); // back here, the button shows the new size
-                }, Component.literal("Clear downloaded songs?"),
-                   Component.literal("This deletes " + formatSize(cacheSize) + " of songs downloaded from servers. "
-                           + "They'll be downloaded again the next time they're played.")))
-        ).bounds(x, y, WIDTH, 20).build();
-        clearCacheButton.active = cacheSize > 0;
-        this.addRenderableWidget(clearCacheButton);
-        y += 34;
+        if (fits(20)) {
+            Button clearCacheButton = Button.builder(Component.literal("Clear downloaded songs (" + formatSize(cacheSize) + ")"), btn ->
+                    this.minecraft.setScreen(new ConfirmScreen(confirmed -> {
+                        if (confirmed) AudioCache.clear();
+                        this.minecraft.setScreen(this); // back here, the button shows the new size
+                    }, Component.literal("Clear downloaded songs?"),
+                       Component.literal("This deletes " + formatSize(cacheSize) + " of songs downloaded from servers. "
+                               + "They'll be downloaded again the next time they're played.")))
+            ).bounds(x, y, columnWidth, 20).build();
+            clearCacheButton.active = cacheSize > 0;
+            this.addRenderableWidget(clearCacheButton);
+        }
+        y += 24;
+
+        // how far it can scroll: everything below the visible area
+        int contentHeight = y + scrollOffset - contentTop;
+        maxScroll = Math.max(0, contentHeight - (contentBottom - contentTop));
+        if (scrollOffset > maxScroll) { // the window got bigger: don't stay scrolled past the end
+            scrollOffset = maxScroll;
+            init();
+            return;
+        }
 
         this.addRenderableWidget(Button.builder(Component.literal("Done"), btn -> onClose())
-                .bounds(x, y, WIDTH, 20).build());
+                .bounds(this.width / 2 - columnWidth / 2, this.height - 28, columnWidth, 20).build());
+    }
+
+    // true if a row of this height at the current y is completely inside the visible area (only those get shown)
+    private boolean fits(int height) {
+        return y >= contentTop && y + height <= contentBottom;
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        int newOffset = Math.max(0, Math.min(maxScroll, scrollOffset - (int)(scrollY * 15)));
+        if (newOffset != scrollOffset) {
+            scrollOffset = newOffset;
+            init();
+        }
+        return true;
     }
 
     @Override
     public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredString(this.font, this.title, this.width / 2, 16, 0xFFFFFFFF);
+        context.drawCenteredString(this.font, this.title, this.width / 2, 12, 0xFFFFFFFF);
+
+        // let the player know there's more below
+        if (scrollOffset < maxScroll) {
+            context.drawCenteredString(this.font, "Scroll for more", this.width / 2, contentBottom + 3, 0xFFAAAAAA);
+        }
     }
 
     @Override
@@ -105,30 +143,37 @@ public class FnfOptionsScreen extends Screen {
         void accept(boolean value);
     }
 
-    private void addCheckbox(int x, int y, String text, boolean selected, BooleanConsumer onChange) {
-        this.addRenderableWidget(Checkbox.builder(Component.literal(text), this.font)
-                .pos(x, y)
-                .selected(selected)
-                .onValueChange((checkbox, value) -> onChange.accept(value))
-                .build());
+    // one checkbox row (only shown if it fits in the visible area)
+    private void addCheckbox(int x, String text, boolean selected, BooleanConsumer onChange) {
+        if (fits(20)) {
+            this.addRenderableWidget(Checkbox.builder(Component.literal(text), this.font)
+                    .pos(x, y)
+                    .selected(selected)
+                    .onValueChange((checkbox, value) -> onChange.accept(value))
+                    .build());
+        }
+        y += 22;
     }
 
-    // a slider from 0 to 1: getValue reads the option as 0..1, setValue writes it back, label is the text shown on it
-    private void addSlider(int x, int y, DoubleSupplier getValue, DoubleConsumer setValue, java.util.function.Supplier<String> label) {
-        this.addRenderableWidget(new AbstractSliderButton(x, y, WIDTH, 20, Component.empty(), getValue.getAsDouble()) {
-            {
-                updateMessage();
-            }
+    // one slider row, from 0 to 1: getValue reads the option as 0..1, setValue writes it back, label is the text shown on it
+    private void addSlider(int x, int width, DoubleSupplier getValue, DoubleConsumer setValue, java.util.function.Supplier<String> label) {
+        if (fits(20)) {
+            this.addRenderableWidget(new AbstractSliderButton(x, y, width, 20, Component.empty(), getValue.getAsDouble()) {
+                {
+                    updateMessage();
+                }
 
-            @Override
-            protected void updateMessage() {
-                setMessage(Component.literal(label.get()));
-            }
+                @Override
+                protected void updateMessage() {
+                    setMessage(Component.literal(label.get()));
+                }
 
-            @Override
-            protected void applyValue() {
-                setValue.accept(value);
-            }
-        });
+                @Override
+                protected void applyValue() {
+                    setValue.accept(value);
+                }
+            });
+        }
+        y += 24;
     }
 }

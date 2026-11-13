@@ -55,8 +55,14 @@ public class GameplayHud {
             int barY = FnfOptions.downscroll ? font.lineHeight + 7 : screenHeight - BOTTOM_OFFSET;
             int playerWidth = (int)(HEALTH_BAR_WIDTH * stats.health / PlayStats.MAX_HEALTH);
             context.fill(barX - 1, barY - 1, barX + HEALTH_BAR_WIDTH + 1, barY + HEALTH_BAR_HEIGHT + 1, 0xFF000000);
-            context.fill(barX, barY, barX + HEALTH_BAR_WIDTH - playerWidth, barY + HEALTH_BAR_HEIGHT, 0xFFFF0000);
-            context.fill(barX + HEALTH_BAR_WIDTH - playerWidth, barY, barX + HEALTH_BAR_WIDTH, barY + HEALTH_BAR_HEIGHT, 0xFF66FF33);
+            if (Gameplay.sidesSwapped()) {
+                // True POV: I'm on the left, so my green part is on the left too
+                context.fill(barX, barY, barX + playerWidth, barY + HEALTH_BAR_HEIGHT, 0xFF66FF33);
+                context.fill(barX + playerWidth, barY, barX + HEALTH_BAR_WIDTH, barY + HEALTH_BAR_HEIGHT, 0xFFFF0000);
+            } else {
+                context.fill(barX, barY, barX + HEALTH_BAR_WIDTH - playerWidth, barY + HEALTH_BAR_HEIGHT, 0xFFFF0000);
+                context.fill(barX + HEALTH_BAR_WIDTH - playerWidth, barY, barX + HEALTH_BAR_WIDTH, barY + HEALTH_BAR_HEIGHT, 0xFF66FF33);
+            }
 
             // Score line above it, same text as Psych
             context.drawCenteredString(font, scoreLine(stats), screenWidth / 2, barY - font.lineHeight - 3, 0xFFFFFFFF);

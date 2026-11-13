@@ -65,16 +65,17 @@ public class Gameplay {
     public static boolean[] opponentHolding = new boolean[4];
     private static boolean[] lastHeld = new boolean[4]; // my keys last frame (VS sends when they change)
 
+    // True POV: when I play the opponent's side in VS, my strums go to the left (where the opponent stands) and the rival's
+    // to the right, so both players see the same stage. Not with middle scroll, there my strums are in the middle anyway.
+    public static boolean sidesSwapped() {
+        return vs && !mySide && FnfOptions.truePov && !FnfOptions.middleScroll;
+    }
+
     // x of one of the player's lanes (0=left, 1=down, 2=up, 3=right)
     public static int laneX(int lane) {
         int screenWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
         if (FnfOptions.middleScroll) return screenWidth / 2 - 2 * NOTE_SIZE + lane * NOTE_SIZE;
-
-        // With the opponent shown: centered in the right half of the screen, like Psych (its strums sit in the middle of each half)
-        if (FnfOptions.showOpponent) return screenWidth * 3 / 4 - 2 * NOTE_SIZE + lane * NOTE_SIZE;
-
-        // rightmost note (lane 3) starts at offsetFromRight, others go left from there
-        return screenWidth - NOTE_SIZE - OFFSET_FROM_RIGHT - (3 - lane) * NOTE_SIZE;
+        return sidesSwapped() ? leftSideX(lane) : rightSideX(lane);
     }
 
     // x of one of the opponent's lanes
@@ -84,9 +85,24 @@ public class Gameplay {
             if (lane < 2) return laneX(0) - GAP_BETWEEN_SIDES - (2 - lane) * NOTE_SIZE;
             return laneX(3) + NOTE_SIZE + GAP_BETWEEN_SIDES + (lane - 2) * NOTE_SIZE;
         }
-        // centered in the left half of the screen, mirroring the player's strums in the right half (like Psych)
+        return sidesSwapped() ? rightSideX(lane) : leftSideX(lane);
+    }
+
+    // The player's usual spot: with the other side shown, centered in the right half of the screen, like Psych
+    // (its strums sit in the middle of each half). Otherwise at the right edge.
+    private static int rightSideX(int lane) {
         int screenWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
-        return screenWidth / 4 - 2 * NOTE_SIZE + lane * NOTE_SIZE;
+        if (FnfOptions.showOpponent) return screenWidth * 3 / 4 - 2 * NOTE_SIZE + lane * NOTE_SIZE;
+
+        // rightmost note (lane 3) starts at offsetFromRight, others go left from there
+        return screenWidth - NOTE_SIZE - OFFSET_FROM_RIGHT - (3 - lane) * NOTE_SIZE;
+    }
+
+    // The opponent's usual spot, mirroring the right side: centered in the left half, or at the left edge.
+    private static int leftSideX(int lane) {
+        int screenWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
+        if (FnfOptions.showOpponent) return screenWidth / 4 - 2 * NOTE_SIZE + lane * NOTE_SIZE;
+        return OFFSET_FROM_RIGHT + lane * NOTE_SIZE;
     }
 
     // with middle scroll the opponent's side is faded out so it doesn't get in the way (Psych does the same)

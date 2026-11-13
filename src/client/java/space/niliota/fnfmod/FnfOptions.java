@@ -20,6 +20,7 @@ public class FnfOptions {
     public static boolean middleScroll = false; // player's strums in the middle of the screen
     public static boolean downscroll = false;   // strums at the bottom, notes come down from the top
     public static boolean showOpponent = false; // show the opponent's strums and notes too
+    public static boolean truePov = false;      // VS on the opponent side: my strums (and me, with the FNF camera) on the left
     public static boolean fnfCamera = false;    // switch to the side view camera while a song plays
     public static double cameraDistance = 5.5;  // blocks, see FnfCamera
     public static int audioOffset = 0;          // ms, higher = notes come later (for when the audio reaches you late, like Psych)
@@ -32,6 +33,7 @@ public class FnfOptions {
             middleScroll   = json.optBoolean("middleScroll", middleScroll);
             downscroll     = json.optBoolean("downscroll", downscroll);
             showOpponent   = json.optBoolean("showOpponent", showOpponent);
+            truePov        = json.optBoolean("truePov", truePov);
             fnfCamera      = json.optBoolean("fnfCamera", fnfCamera);
             cameraDistance = clamp(json.optDouble("cameraDistance", cameraDistance), FnfCamera.MIN_DISTANCE, FnfCamera.MAX_DISTANCE);
             audioOffset    = (int) clamp(json.optInt("audioOffset", audioOffset), MIN_AUDIO_OFFSET, MAX_AUDIO_OFFSET);
@@ -46,6 +48,7 @@ public class FnfOptions {
         json.put("middleScroll", middleScroll);
         json.put("downscroll", downscroll);
         json.put("showOpponent", showOpponent);
+        json.put("truePov", truePov);
         json.put("fnfCamera", fnfCamera);
         json.put("cameraDistance", cameraDistance);
         json.put("audioOffset", audioOffset);
