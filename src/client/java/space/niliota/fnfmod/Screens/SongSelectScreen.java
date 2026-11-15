@@ -39,7 +39,7 @@ public class SongSelectScreen extends FnfMenuScreen {
             if (!search.isEmpty() && !song.name().toLowerCase().contains(search)) continue;
             int songId = i; // the server knows songs by their position in the list
 
-            rows.add(new MenuList.Entry(song.name(), chartVersions(song) + "  ·  " + audioCount(song), () -> {
+            rows.add(new MenuList.Entry(song.name(), chartVersions(song) + "  ·  " + audioCount(song) + bestText(heading.getString(), song), () -> {
                 // When the song is clicked, we can display a toast to the screen.
                 this.minecraft.getToasts().addToast(
                         SystemToast.multiline(this.minecraft, SystemToast.SystemToastId.NARRATOR_TOGGLE, Component.nullToEmpty(String.format("Opening %s!", song.name())), Component.nullToEmpty(song.chartFiles().size() + " charts, " + (song.instFiles().size() + song.voicesFiles().size()) + " audio files"))

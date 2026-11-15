@@ -6,6 +6,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import space.niliota.fnfmod.HighScores;
 import space.niliota.fnfmod.network.SongCatalogPayload;
 
 import java.util.ArrayList;
@@ -117,6 +118,12 @@ public abstract class FnfMenuScreen extends Screen {
     public static String audioCount(SongCatalogPayload.SongEntry song) {
         int count = song.instFiles().size() + song.voicesFiles().size();
         return count + (count == 1 ? " audio file" : " audio files");
+    }
+
+    // "  ·  Best 123,456" for the song's best of all its charts, "" if it was never finished
+    public static String bestText(String packName, SongCatalogPayload.SongEntry song) {
+        HighScores.Best best = HighScores.bestOfSong(packName, song.name());
+        return best == null ? "" : String.format(Locale.ROOT, "  ·  Best %,d", best.score());
     }
 
     public static List<MenuList.Row> rows() {

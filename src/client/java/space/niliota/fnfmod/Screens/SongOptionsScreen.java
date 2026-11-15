@@ -6,6 +6,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import space.niliota.fnfmod.ClientSongCatalog;
+import space.niliota.fnfmod.HighScores;
 import space.niliota.fnfmod.network.ClientNetworking;
 import space.niliota.fnfmod.network.ClientVs;
 import space.niliota.fnfmod.network.RequestSongPayload;
@@ -16,6 +17,7 @@ import space.niliota.fnfmod.network.VsPickPayload;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 // Third menu: choose which chart and audio files of the song to use, then start playing.
@@ -81,7 +83,12 @@ public class SongOptionsScreen extends FnfMenuScreen {
         rows.add(new MenuList.Header("Chart"));
         for (int i = 0; i < song.chartFiles().size(); i++) {
             int id = i;
-            rows.add(new MenuList.Toggle(song.chartFiles().get(i), () -> selectedChart == id, () -> {
+            // the chart's personal best after its name
+            String file = song.chartFiles().get(i);
+            HighScores.Best best = HighScores.best(subtitle, song.name(), file);
+            String label = best == null ? file : String.format(Locale.ROOT, "%s  ·  best %,d · %.1f%% %s",
+                    file, best.score(), best.accuracy() * 100, best.fullCombo()).trim();
+            rows.add(new MenuList.Toggle(label, () -> selectedChart == id, () -> {
                 selectedChart = id;
                 updateStartButton();
             }));

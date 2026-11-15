@@ -127,7 +127,7 @@ public class SongSender {
                 audioHashes.add(AudioHashes.hashOf(file));
             }
 
-            return new SongDataPayload(song.name, timing.startBpm, scrollSpeed, notes, timing.changes, scrollSpeeds.changes, audioHashes);
+            return new SongDataPayload(song.name, pack.name, chartFile.getFileName().toString(), timing.startBpm, scrollSpeed, notes, timing.changes, scrollSpeeds.changes, audioHashes);
         } catch (Exception e) {
             // the full error stays in the server log, the player only gets a short message (errors can contain server paths)
             LOGGER.error("Couldn't load song {} from pack {}", song.name, pack.name, e);

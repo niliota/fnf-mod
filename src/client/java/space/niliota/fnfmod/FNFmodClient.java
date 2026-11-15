@@ -35,8 +35,9 @@ public class FNFmodClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-		// the player's saved options (config/fnfmod.json)
+		// the player's saved options (config/fnfmod.json) and personal bests (config/fnfmod-scores.json)
 		FnfOptions.load();
+		HighScores.load();
 
 		leftKey  = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.fnfmod.left",  InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT,  "category.fnfmod.keys"));
 		downKey  = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.fnfmod.down",  InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_DOWN,  "category.fnfmod.keys"));

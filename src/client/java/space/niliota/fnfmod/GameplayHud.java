@@ -1,12 +1,10 @@
 package space.niliota.fnfmod;
 
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import space.niliota.fnfmod.Judging.PlayStats;
@@ -16,7 +14,7 @@ import space.niliota.fnfmod.network.ClientVs;
 import java.util.Locale;
 
 // Everything on screen during a song besides the notes: health bar, score line, rating popups and the countdown.
-// Also writes the results into the chat when a song ends.
+// (The results when a song ends are a screen of their own, ResultsScreen.)
 public class GameplayHud {
     private static final int HEALTH_BAR_WIDTH = 150;
     private static final int HEALTH_BAR_HEIGHT = 6;
@@ -175,18 +173,6 @@ public class GameplayHud {
             if (!fc.isEmpty()) rating += " - " + fc;
         }
         return "Score: " + stats.score + " | Misses: " + stats.misses + " | Rating: " + rating;
-    }
-
-    // Writes how the song went into the chat.
-    public static void showResults(String title, PlayStats stats) {
-        if (Minecraft.getInstance().player == null) return;
-
-        Component results = Component.literal(title).withStyle(ChatFormatting.BOLD, ChatFormatting.AQUA)
-                .append(Component.literal("\n" + scoreLine(stats)).withStyle(style -> style.withBold(false).withColor(ChatFormatting.WHITE)))
-                .append(Component.literal("\nSick: " + stats.sicks + "  Good: " + stats.goods + "  Bad: " + stats.bads
-                        + "  Shit: " + stats.shits + "  Max combo: " + stats.maxCombo).withStyle(style -> style.withBold(false).withColor(ChatFormatting.GRAY)));
-
-        Minecraft.getInstance().player.displayClientMessage(results, false);
     }
 
     private static int ratingColor(Rating rating) {

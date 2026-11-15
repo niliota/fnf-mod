@@ -45,7 +45,7 @@ class VsTest {
 
     @Test
     void packets() {
-        VsMatchPayload match = new VsMatchPayload(VsMatchPayload.LOADING, "Rival", UUID.randomUUID(), false, "bopeebo");
+        VsMatchPayload match = new VsMatchPayload(VsMatchPayload.ENDED, "Rival", UUID.randomUUID(), false, "bopeebo", "VS bopeebo: Rival wins!");
         assertEquals(match, roundTrip(VsMatchPayload.CODEC, match));
 
         VsPickPayload pick = new VsPickPayload(new RequestSongPayload(1, 2, List.of(0), List.of(0, 1), 3, -1), false);

@@ -12,8 +12,8 @@ import java.util.UUID;
 //  PICKING - the challenge was accepted, both players can pick a song (first one decides)
 //  LOADING - a song was picked, both players load it (the song itself comes as a normal SongDataPayload right after)
 //  GO      - both are ready, start the countdown
-//  ENDED   - the match is over or was cancelled (the result is in the chat)
-public record VsMatchPayload(int state, String rivalName, UUID rivalId, boolean youAreBoyfriend, String songName) implements CustomPacketPayload {
+//  ENDED   - the match is over or was cancelled. result = who won, or why it ended (also in the chat)
+public record VsMatchPayload(int state, String rivalName, UUID rivalId, boolean youAreBoyfriend, String songName, String result) implements CustomPacketPayload {
     public static final int PICKING = 0, LOADING = 1, GO = 2, ENDED = 3;
 
     public static final CustomPacketPayload.Type<VsMatchPayload> TYPE =
@@ -26,8 +26,9 @@ public record VsMatchPayload(int state, String rivalName, UUID rivalId, boolean 
                 UUIDUtil.STREAM_CODEC.encode(buf, payload.rivalId());
                 buf.writeBoolean(payload.youAreBoyfriend());
                 buf.writeUtf(payload.songName());
+                buf.writeUtf(payload.result());
             },
-            buf -> new VsMatchPayload(buf.readVarInt(), buf.readUtf(), UUIDUtil.STREAM_CODEC.decode(buf), buf.readBoolean(), buf.readUtf())
+            buf -> new VsMatchPayload(buf.readVarInt(), buf.readUtf(), UUIDUtil.STREAM_CODEC.decode(buf), buf.readBoolean(), buf.readUtf(), buf.readUtf())
     );
 
     @Override

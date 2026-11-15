@@ -12,6 +12,7 @@ import space.niliota.fnfmod.Audio.SongClock;
 import space.niliota.fnfmod.Charting.Chart;
 import space.niliota.fnfmod.Judging.JudgedNote;
 import space.niliota.fnfmod.Judging.NoteJudge;
+import space.niliota.fnfmod.Screens.ResultsScreen;
 import space.niliota.fnfmod.network.ClientVs;
 import space.niliota.fnfmod.network.VsEvent;
 import space.niliota.fnfmod.network.VsMatchPayload;
@@ -378,17 +379,28 @@ public class Gameplay {
         if (FnfOptions.fnfCamera) FnfCamera.songStarted();
     }
 
-    // The music ended by itself, show how it went. In VS the server also gets the final score and decides the winner.
+    // The music ended by itself: save the personal best and show the results screen.
+    // In VS the server also gets the final score and decides the winner (the results screen shows it when it comes in).
     public static void songFinished() {
-        if (judge != null) {
-            if (vs) {
-                ClientVs.sendScore(VsScore.FINISHED);
-                GameplayHud.showResults("Song Finished! Waiting for " + ClientVs.rivalName + "'s result...", judge.stats);
-            } else {
-                GameplayHud.showResults("Song Cleared!", judge.stats);
-            }
+        if (judge == null) {
+            stopGameplay();
+            return;
         }
+        if (vs) ClientVs.sendScore(VsScore.FINISHED);
+        showResults(vs ? "VS Results" : "Song Cleared!", 0xFF55FF55, true, "");
         stopGameplay();
+    }
+
+    // Opens the results screen for the song that's playing (call before stopGameplay()).
+    // countsAsBest = save it as a personal best if it beat it (not for game overs). vsResult = who won, "" if not known yet
+    public static void showResults(String heading, int headingColor, boolean countsAsBest, String vsResult) {
+        Chart chart = currentChart;
+        HighScores.Best previous = HighScores.best(chart.packName, chart.songName, chart.chartFile);
+        boolean newBest = countsAsBest && HighScores.record(chart.packName, chart.songName, chart.chartFile, judge.stats);
+
+        Minecraft.getInstance().setScreen(new ResultsScreen(heading, headingColor, chart.songName, chart.packName, chart.chartFile,
+                judge.stats, newBest, previous,
+                vs ? ClientVs.rivalName : null, vs ? opponentJudge.stats : null, vsResult));
     }
 
     // The player pressed "Stop playing". In VS that's giving up.
@@ -401,7 +413,7 @@ public class Gameplay {
     // Health ran out.
     public static void gameOver() {
         AudioManager.stopAllTracks();
-        GameplayHud.showResults("Game Over!", judge.stats);
+        showResults("Game Over!", 0xFFFF5555, false, "");
         stopGameplay();
     }
 

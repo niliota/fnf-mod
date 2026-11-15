@@ -16,6 +16,7 @@ import space.niliota.fnfmod.Judging.PlayStats;
 import space.niliota.fnfmod.Judging.Rating;
 import space.niliota.fnfmod.Screens.FnfOptionsScreen;
 import space.niliota.fnfmod.Screens.PackSelectScreen;
+import space.niliota.fnfmod.Screens.ResultsScreen;
 import space.niliota.fnfmod.Screens.SongOptionsScreen;
 import space.niliota.fnfmod.Screens.SongSelectScreen;
 import net.minecraft.network.chat.Component;
@@ -108,10 +109,15 @@ public class ClientVs {
                 }
             }
             case VsMatchPayload.ENDED -> {
-                // if the song is still going (the rival left or the match was cancelled), stop it
                 if (Gameplay.running && Gameplay.vs) {
+                    // the song is still going (the rival gave up or left, or the match was cancelled):
+                    // stop it and show the results so far, with why it ended
                     AudioManager.stopAllTracks();
+                    Gameplay.showResults("VS Results", 0xFF55FF55, false, match.result());
                     Gameplay.stopGameplay();
+                } else if (minecraft.screen instanceof ResultsScreen results) {
+                    // the results screen is waiting for who won
+                    results.setVsResult(match.result());
                 }
                 reset();
             }

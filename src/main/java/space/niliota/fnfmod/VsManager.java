@@ -158,7 +158,7 @@ public class VsManager {
         for (ServerPlayer player : List.of(from, to)) {
             ServerPlayer rival = player == from ? to : from;
             player.sendSystemMessage(text("VS " + name(rival) + "! Pick a song from the Mic menu, whoever picks first decides.", ChatFormatting.AQUA));
-            ServerPlayNetworking.send(player, new VsMatchPayload(VsMatchPayload.PICKING, name(rival), rival.getUUID(), true, ""));
+            ServerPlayNetworking.send(player, new VsMatchPayload(VsMatchPayload.PICKING, name(rival), rival.getUUID(), true, "", ""));
         }
     }
 
@@ -198,7 +198,7 @@ public class VsManager {
             boolean boyfriend = p.getUUID().equals(match.a) == match.aIsBoyfriend;
             p.sendSystemMessage(text(name(player) + " picked " + song.songName() + ". You play the "
                     + (boyfriend ? "boyfriend" : "opponent") + " side.", ChatFormatting.AQUA));
-            ServerPlayNetworking.send(p, new VsMatchPayload(VsMatchPayload.LOADING, name(other), other.getUUID(), boyfriend, song.songName()));
+            ServerPlayNetworking.send(p, new VsMatchPayload(VsMatchPayload.LOADING, name(other), other.getUUID(), boyfriend, song.songName(), ""));
             ServerPlayNetworking.send(p, song);
         }
     }
@@ -218,7 +218,7 @@ public class VsManager {
             ServerPlayer other = player.getServer().getPlayerList().getPlayer(match.other(id));
             if (p == null || other == null) continue;
             boolean boyfriend = id.equals(match.a) == match.aIsBoyfriend;
-            ServerPlayNetworking.send(p, new VsMatchPayload(VsMatchPayload.GO, name(other), other.getUUID(), boyfriend, match.songName));
+            ServerPlayNetworking.send(p, new VsMatchPayload(VsMatchPayload.GO, name(other), other.getUUID(), boyfriend, match.songName, ""));
         }
     }
 
@@ -306,7 +306,8 @@ public class VsManager {
                         "/fnfvs challenge " + name(rival), "Challenge " + name(rival) + " again"));
             }
             p.sendSystemMessage(text);
-            ServerPlayNetworking.send(p, new VsMatchPayload(VsMatchPayload.ENDED, nameOf(server, match.other(id)), match.other(id), true, match.songName));
+            ServerPlayNetworking.send(p, new VsMatchPayload(VsMatchPayload.ENDED, nameOf(server, match.other(id)), match.other(id), true, match.songName,
+                    message.lines().findFirst().orElse(""))); // the first line says who won
         }
     }
 

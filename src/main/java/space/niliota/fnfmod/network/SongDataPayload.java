@@ -14,7 +14,10 @@ import java.util.List;
 // Server -> client, the answer to RequestSongPayload.
 // The chart is already parsed by the server, so the client only gets the notes (both sides) and the song's info (bpm, bpm changes, speed, speed changes).
 // The audio files are only named by their hash, the client then checks if it has them or needs to download them.
+// packName + songName + chartFile say exactly which chart this is (personal bests are kept per chart).
 public record SongDataPayload(String songName,
+                              String packName,
+                              String chartFile,
                               double bpm,
                               double scrollSpeed,
                               List<ChartNote> notes,
@@ -32,6 +35,8 @@ public record SongDataPayload(String songName,
     public static final StreamCodec<FriendlyByteBuf, SongDataPayload> CODEC = StreamCodec.of(
             (buf, payload) -> {
                 buf.writeUtf(payload.songName());
+                buf.writeUtf(payload.packName());
+                buf.writeUtf(payload.chartFile());
                 buf.writeDouble(payload.bpm());
                 buf.writeDouble(payload.scrollSpeed());
 
@@ -63,6 +68,8 @@ public record SongDataPayload(String songName,
             },
             buf -> {
                 String songName = buf.readUtf();
+                String packName = buf.readUtf();
+                String chartFile = buf.readUtf();
                 double bpm = buf.readDouble();
                 double scrollSpeed = buf.readDouble();
 
@@ -91,7 +98,7 @@ public record SongDataPayload(String songName,
                 }
 
                 List<String> audioHashes = buf.readList(FriendlyByteBuf::readUtf);
-                return new SongDataPayload(songName, bpm, scrollSpeed, notes, bpmChanges, scrollChanges, audioHashes);
+                return new SongDataPayload(songName, packName, chartFile, bpm, scrollSpeed, notes, bpmChanges, scrollChanges, audioHashes);
             }
     );
 

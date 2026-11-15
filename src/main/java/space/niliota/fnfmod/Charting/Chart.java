@@ -9,6 +9,7 @@ public class Chart {
     public List<ChartNote> notes = new ArrayList<>();
     public List<BpmChange> bpmChanges = new ArrayList<>(); // empty = the bpm never changes
     public ScrollSpeeds scrollSpeeds;                       // the speed at any point in the song (null = always scrollSpeed)
+    public String songName = "", packName = "", chartFile = ""; // which chart this is (personal bests, results screen)
 
     public Chart(double scrollSpeed, List<ChartNote> notes, double bpm) {
         this.scrollSpeed = scrollSpeed;

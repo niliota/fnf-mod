@@ -51,13 +51,15 @@ class PayloadCodecTest {
         note.length = 250;
         note.isPlayer = true;
 
-        SongDataPayload song = new SongDataPayload("roses", 120, 1.8, List.of(note),
+        SongDataPayload song = new SongDataPayload("roses", "Base game", "roses-chart.json", 120, 1.8, List.of(note),
                 List.of(new BpmChange(0, 120), new BpmChange(5000, 180)),
                 List.of(new ScrollSpeeds.Change(8000, 2.5, 400, "quadInOut", ScrollSpeeds.PLAYER, false)),
                 List.of("a".repeat(40)));
         SongDataPayload result = roundTrip(SongDataPayload.CODEC, song);
 
         assertEquals("roses", result.songName());
+        assertEquals("Base game", result.packName());
+        assertEquals("roses-chart.json", result.chartFile());
         assertEquals(120, result.bpm());
         assertEquals(1.8, result.scrollSpeed());
         assertEquals(song.audioHashes(), result.audioHashes());
@@ -78,7 +80,7 @@ class PayloadCodecTest {
         for (int i = 0; i < SongDataPayload.MAX_NOTES; i++) notes.add(new ChartNote());
 
         FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-        SongDataPayload.CODEC.encode(buf, new SongDataPayload("big", 100, 2, notes, List.of(), List.of(), List.of()));
+        SongDataPayload.CODEC.encode(buf, new SongDataPayload("big", "pack", "big.json", 100, 2, notes, List.of(), List.of(), List.of()));
         assertTrue(buf.readableBytes() < 1024 * 1024, "SongDataPayload was " + buf.readableBytes() + " bytes");
     }
 

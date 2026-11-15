@@ -24,6 +24,7 @@ public class ClientNetworking {
     // the song we got from the server but can't start yet because audio files are still downloading
     private static SongDataPayload pendingSong;
     private static int filesToDownload = 0;
+    private static RequestSongPayload lastRequest; // for Retry
 
     public static void init() {
         ClientPlayNetworking.registerGlobalReceiver(SongCatalogPayload.TYPE, (payload, context) -> ClientSongCatalog.set(payload.packs()));
@@ -38,6 +39,7 @@ public class ClientNetworking {
             ClientSongCatalog.clear();
             AudioCache.cancelAll();
             pendingSong = null;
+            lastRequest = null; // that server's songs are gone
         }));
 
         // "Downloading song..." text while waiting for audio files
@@ -54,7 +56,17 @@ public class ClientNetworking {
     // Called by SongOptionsScreen's "Start playing" button.
     public static void requestSong(RequestSongPayload request) {
         if (!ClientPlayNetworking.canSend(RequestSongPayload.TYPE)) return;
+        lastRequest = request;
         ClientPlayNetworking.send(request);
+    }
+
+    // Retry on the results screen: the same song with the same files again
+    public static boolean canRetry() {
+        return lastRequest != null && ClientPlayNetworking.canSend(RequestSongPayload.TYPE);
+    }
+
+    public static void retryLastSong() {
+        if (canRetry()) requestSong(lastRequest);
     }
 
     private static void onSongData(SongDataPayload song) {
@@ -116,6 +128,9 @@ public class ClientNetworking {
 
         Chart chart = new Chart(song.scrollSpeed(), song.notes(), song.bpm());
         chart.bpmChanges = song.bpmChanges();
+        chart.songName = song.songName();
+        chart.packName = song.packName();
+        chart.chartFile = song.chartFile();
         // charts without a speed get 1, so the notes still move
         chart.scrollSpeeds = new ScrollSpeeds(song.scrollSpeed() > 0 ? song.scrollSpeed() : 1, new ArrayList<>(song.scrollChanges()));
         LOGGER.info("Starting {} ({} notes, bpm {}, speed {})", song.songName(), song.notes().size(), song.bpm(), song.scrollSpeed());
