@@ -6,17 +6,34 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import space.niliota.fnfmod.FNFPack;
 import space.niliota.fnfmod.FNFSong;
+import space.niliota.fnfmod.PackIcons;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 // Server -> client, sent when a player joins.
-// The list of every pack and song on the server, so the client can show the menus without having the packs itself.
+// The list of every pack (with its icon) and song on the server, so the client can show the menus without having the packs itself.
 // Only names are sent, never the actual paths on the server. The client later asks for files by their position in these lists.
 public record SongCatalogPayload(List<PackEntry> packs) implements CustomPacketPayload {
 
-    public record PackEntry(String name, List<SongEntry> songs) {}
+    // icon = the pack's icon as a PNG (PackIcons), empty if it has none
+    public record PackEntry(String name, byte[] icon, List<SongEntry> songs) {
+        // records compare arrays by object, these compare the icon's bytes
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof PackEntry pack && name.equals(pack.name) && Arrays.equals(icon, pack.icon) && songs.equals(pack.songs);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, Arrays.hashCode(icon), songs);
+        }
+    }
+
+    public static final int MAX_ICON_BYTES = 64 * 1024; // a 64x64 PNG is a few KB, anything way bigger is ignored
 
     public record SongEntry(String name,
                             List<String> instFiles,
@@ -33,6 +50,7 @@ public record SongCatalogPayload(List<PackEntry> packs) implements CustomPacketP
                 buf.writeVarInt(payload.packs().size());
                 for (PackEntry pack : payload.packs()) {
                     buf.writeUtf(pack.name());
+                    buf.writeByteArray(pack.icon());
                     buf.writeVarInt(pack.songs().size());
                     for (SongEntry song : pack.songs()) {
                         buf.writeUtf(song.name());
@@ -49,6 +67,7 @@ public record SongCatalogPayload(List<PackEntry> packs) implements CustomPacketP
                 int packCount = buf.readVarInt();
                 for (int p = 0; p < packCount; p++) {
                     String packName = buf.readUtf();
+                    byte[] icon = buf.readByteArray(MAX_ICON_BYTES);
                     List<SongEntry> songs = new ArrayList<>();
                     int songCount = buf.readVarInt();
                     for (int s = 0; s < songCount; s++) {
@@ -60,7 +79,7 @@ public record SongCatalogPayload(List<PackEntry> packs) implements CustomPacketP
                                 buf.readList(FriendlyByteBuf::readUtf)
                         ));
                     }
-                    packs.add(new PackEntry(packName, songs));
+                    packs.add(new PackEntry(packName, icon, songs));
                 }
                 return new SongCatalogPayload(packs);
             }
@@ -80,7 +99,9 @@ public record SongCatalogPayload(List<PackEntry> packs) implements CustomPacketP
                         fileNames(song.metadataFiles)
                 ));
             }
-            packEntries.add(new PackEntry(pack.name, songEntries));
+            byte[] icon = PackIcons.iconFor(pack.packPath, pack.modPaths);
+            if (icon.length > MAX_ICON_BYTES) icon = new byte[0];
+            packEntries.add(new PackEntry(pack.name, icon, songEntries));
         }
         return new SongCatalogPayload(packEntries);
     }

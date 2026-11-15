@@ -27,11 +27,11 @@ class PayloadCodecTest {
     @Test
     void songCatalog() {
         SongCatalogPayload catalog = new SongCatalogPayload(List.of(
-                new SongCatalogPayload.PackEntry("Pack A", List.of(
+                new SongCatalogPayload.PackEntry("Pack A", new byte[] {1, 2, 3}, List.of(
                         new SongCatalogPayload.SongEntry("bopeebo", List.of("Inst.ogg"), List.of("Voices.ogg", "Voices-bf.ogg"), List.of("bopeebo-hard.json"), List.of()),
                         new SongCatalogPayload.SongEntry("fresh", List.of(), List.of(), List.of("fresh.json"), List.of("meta.json"))
                 )),
-                new SongCatalogPayload.PackEntry("Empty pack", List.of())
+                new SongCatalogPayload.PackEntry("Empty pack", new byte[0], List.of())
         ));
 
         assertEquals(catalog, roundTrip(SongCatalogPayload.CODEC, catalog));

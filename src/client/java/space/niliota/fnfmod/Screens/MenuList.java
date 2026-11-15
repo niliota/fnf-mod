@@ -1,5 +1,6 @@
 package space.niliota.fnfmod.Screens;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -11,11 +12,12 @@ import java.util.List;
 
 // The scrolling list used by FNFmod's menus, the same kind Minecraft uses for its world and server lists.
 // Rows can be:
-//  * Entry   - a title with a grey line under it, does something when clicked (open a pack, pick a song...)
+//  * Entry   - a title with a grey line under it (and an icon in front, if it has one), does something when clicked
 //  * Header  - a section heading, can't be clicked
 //  * Toggle  - a tick box with a label (pick audio files...)
 public class MenuList extends ObjectSelectionList<MenuList.Row> {
     public static final int ROW_HEIGHT = 24;
+    private static final int ICON_SIZE = 20;
     private static final int MAX_ROW_WIDTH = 300;
 
     private static final ResourceLocation CHECKBOX = ResourceLocation.withDefaultNamespace("widget/checkbox");
@@ -56,27 +58,45 @@ public class MenuList extends ObjectSelectionList<MenuList.Row> {
         private final String title;
         private final String subtitle;
         private final int titleColor;
+        private final ResourceLocation icon; // null = no icon
         private final Runnable onClick;
 
-        public Entry(String title, String subtitle, int titleColor, Runnable onClick) {
+        public Entry(String title, String subtitle, int titleColor, ResourceLocation icon, Runnable onClick) {
             this.title = title;
             this.subtitle = subtitle;
             this.titleColor = titleColor;
+            this.icon = icon;
             this.onClick = onClick;
         }
 
+        public Entry(String title, String subtitle, int titleColor, Runnable onClick) {
+            this(title, subtitle, titleColor, null, onClick);
+        }
+
         public Entry(String title, String subtitle, Runnable onClick) {
-            this(title, subtitle, 0xFFFFFFFF, onClick);
+            this(title, subtitle, 0xFFFFFFFF, null, onClick);
         }
 
         @Override
         public void render(GuiGraphics context, int index, int top, int left, int width, int height,
                            int mouseX, int mouseY, boolean hovering, float partialTick) {
             if (hovering) context.fill(left - 2, top - 2, left + width - 2, top + height + 2, 0x30FFFFFF);
+
+            // the icon (64x64 texture drawn at 20x20), the text moves over to make room for it
+            int textX = left + 4;
+            if (icon != null) {
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+                context.blit(icon, left + 2, top, ICON_SIZE, ICON_SIZE, 0, 0, 64, 64, 64, 64);
+                RenderSystem.disableBlend();
+                textX = left + ICON_SIZE + 7;
+            }
+
             Font font = Minecraft.getInstance().font;
-            context.drawString(font, cut(font, title, width - 8), left + 4, top + 1, titleColor, true);
+            int textWidth = left + width - textX - 4;
+            context.drawString(font, cut(font, title, textWidth), textX, top + 1, titleColor, true);
             if (subtitle != null && !subtitle.isEmpty()) {
-                context.drawString(font, cut(font, subtitle, width - 8), left + 4, top + 12, 0xFF9A9A9A, false);
+                context.drawString(font, cut(font, subtitle, textWidth), textX, top + 12, 0xFF9A9A9A, false);
             }
         }
 

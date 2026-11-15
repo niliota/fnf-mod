@@ -72,7 +72,7 @@ public class PackSelectScreen extends FnfMenuScreen {
                 SongCatalogPayload.SongEntry song = pack.songs().get(s);
                 if (!song.name().toLowerCase().contains(search)) continue;
                 int packId = p, songId = s; // the server knows packs and songs by their position in the list
-                songRows.add(new MenuList.Entry(song.name(), pack.name() + "  ·  " + chartVersions(song), () ->
+                songRows.add(new MenuList.Entry(song.name(), pack.name() + "  ·  " + chartVersions(song), 0xFFFFFFFF, ClientSongCatalog.icon(packId), () ->
                         Minecraft.getInstance().setScreen(new SongOptionsScreen(Component.empty(), packId, songId, song))));
             }
         }
@@ -86,7 +86,8 @@ public class PackSelectScreen extends FnfMenuScreen {
 
     private MenuList.Row packRow(int packId, SongCatalogPayload.PackEntry pack) {
         int songCount = pack.songs().size();
-        return new MenuList.Entry(pack.name(), songCount + (songCount == 1 ? " song" : " songs"), () ->
+        // the pack's icon (from its .ico) in front of the name, if it has one
+        return new MenuList.Entry(pack.name(), songCount + (songCount == 1 ? " song" : " songs"), 0xFFFFFFFF, ClientSongCatalog.icon(packId), () ->
                 // Open the song select screen using the pack's songs.
                 Minecraft.getInstance().setScreen(new SongSelectScreen(Component.literal(pack.name()), packId, pack.songs())));
     }
