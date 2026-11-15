@@ -1,24 +1,21 @@
 package space.niliota.fnfmod.Screens;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.toasts.SystemToast;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import space.niliota.fnfmod.Audio.AudioManager;
 import space.niliota.fnfmod.Gameplay;
 import space.niliota.fnfmod.network.SongCatalogPayload;
 
 import java.util.List;
 
-// Second menu: lists the songs of the pack chosen in PackSelectScreen.
-public class SongSelectScreen extends Screen {
+// Second menu: lists the songs of the pack chosen in PackSelectScreen, with a search box.
+// Each song shows its versions (from the chart names) and how many audio files it has.
+public class SongSelectScreen extends FnfMenuScreen {
     public int packId;
     public List<SongCatalogPayload.SongEntry> songs;
-    private int scrollOffset = 0;
 
 
+    // title = the pack's name
     public SongSelectScreen(Component title, int packId, List<SongCatalogPayload.SongEntry> songs) {
         super(title);
         this.packId = packId;
@@ -27,18 +24,23 @@ public class SongSelectScreen extends Screen {
 
     @Override
     protected void init() {
-        rebuildButtons();
+        setupLayout("Search songs...", List.of(
+                button("Back", btn -> Minecraft.getInstance().setScreen(new PackSelectScreen(Component.empty()))),
+                button("Stop playing", btn -> Gameplay.stopByPlayer()), // in VS this counts as giving up
+                button("Done", btn -> onClose())
+        ));
     }
 
-    public void rebuildButtons() {
-        this.clearWidgets();
-        int x = 40; int y = 40 - scrollOffset;
+    @Override
+    protected List<MenuList.Row> buildRows(String search) {
+        List<MenuList.Row> rows = rows();
         for (int i = 0; i < songs.size(); i++) {
             SongCatalogPayload.SongEntry song = songs.get(i);
+            if (!search.isEmpty() && !song.name().toLowerCase().contains(search)) continue;
             int songId = i; // the server knows songs by their position in the list
 
-            Button songButton = Button.builder(Component.nullToEmpty(song.name()), (btn) -> {
-                // When the button is clicked, we can display a toast to the screen.
+            rows.add(new MenuList.Entry(song.name(), chartVersions(song) + "  ·  " + audioCount(song), () -> {
+                // When the song is clicked, we can display a toast to the screen.
                 this.minecraft.getToasts().addToast(
                         SystemToast.multiline(this.minecraft, SystemToast.SystemToastId.NARRATOR_TOGGLE, Component.nullToEmpty(String.format("Opening %s!", song.name())), Component.nullToEmpty(song.chartFiles().size() + " charts, " + (song.instFiles().size() + song.voicesFiles().size()) + " audio files"))
                 );
@@ -63,44 +65,13 @@ public class SongSelectScreen extends Screen {
 //
 ////                    Gameplay.startGameplay(song);
 //                }
-
-
-            }).bounds(x, y, 120, 20).build();
-            // x, y, width, height
-            // It's recommended to use the fixed height of 20 to prevent rendering issues with the button
-            // textures.
-
-
-            y += 20;
-            this.addRenderableWidget(songButton);
+            }));
         }
-
-        Button stopButton = Button.builder(Component.nullToEmpty("Stop playing"), (btn) -> {
-            Gameplay.stopByPlayer(); // in VS this counts as giving up
-
-
-        }).bounds(200, 10, 120, 20).build();
-        this.addRenderableWidget(stopButton);
+        return rows;
     }
 
     @Override
-    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-
-        // Minecraft doesn't have a "label" widget, so we'll have to draw our own text.
-        // We'll subtract the font height from the Y position to make the text appear above the button.
-        // Subtracting an extra 10 pixels will give the text some padding.
-        // textRenderer, text, x, y, color, hasShadow
-        context.drawString(this.font, "Choose a song", 40, 40 - this.font.lineHeight - 10, 0xFFFFFFFF, true);
-
-
-    }
-
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        scrollOffset -= (int)(scrollY * 15);
-        scrollOffset = Math.max(0, scrollOffset);
-        rebuildButtons();
-        return true;
+    protected String emptyText() {
+        return songs.isEmpty() ? "This pack has no songs." : "No songs found.";
     }
 }
