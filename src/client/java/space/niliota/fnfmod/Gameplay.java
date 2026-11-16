@@ -13,6 +13,7 @@ import space.niliota.fnfmod.Charting.Chart;
 import space.niliota.fnfmod.Judging.JudgedNote;
 import space.niliota.fnfmod.Judging.NoteJudge;
 import space.niliota.fnfmod.Screens.ResultsScreen;
+import space.niliota.fnfmod.network.ClientNetworking;
 import space.niliota.fnfmod.network.ClientVs;
 import space.niliota.fnfmod.network.VsEvent;
 import space.niliota.fnfmod.network.VsMatchPayload;
@@ -168,17 +169,17 @@ public class Gameplay {
                 if (hit != null) {
                     lastHitTime[lane] = songPosition;
                     GameplayHud.showRating(hit.rating, judge.stats.combo);
-                    ClientVs.queue(new VsEvent(VsEvent.HIT, hit.index, hit.rating.ordinal())); // VS: the rival sees it
+                    ClientVs.queue(new VsEvent(VsEvent.HIT, hit.index, hit.rating.ordinal())); // the rival (VS) and anyone watching see it
                 }
             }
             held[lane] = keys[lane].isDown();
 
-            // VS: the rival sees my strums pressed
+            // the rival (VS) and anyone watching see my strums pressed
             if (held[lane] != lastHeld[lane]) ClientVs.queue(new VsEvent(held[lane] ? VsEvent.KEY_DOWN : VsEvent.KEY_UP, lane, 0));
         }
         lastHeld = held;
 
-        judge.update(songPosition, held); // misses and dropped holds go to the rival through judge.listener
+        judge.update(songPosition, held); // misses and dropped holds go to the rival and anyone watching through judge.listener
     }
 
     // The opponent always plays, even when it isn't shown, so turning it on later doesn't show a pile of old notes.
@@ -354,14 +355,12 @@ public class Gameplay {
         judge = new NoteJudge(chart.notes, mySide, chart.bpm, chart.bpmChanges);
         opponentJudge = new NoteJudge(chart.notes, !mySide, chart.bpm, chart.bpmChanges);
         lastHeld = new boolean[4];
-        if (vs) {
-            // my misses and dropped holds go to the rival too
-            judge.listener = new NoteJudge.Listener() {
-                @Override public void onMiss(JudgedNote note) { ClientVs.queue(new VsEvent(VsEvent.MISS, note.index, 0)); }
-                @Override public void onHoldDropped(JudgedNote note) { ClientVs.queue(new VsEvent(VsEvent.HOLD_DROPPED, note.index, 0)); }
-            };
-            ClientVs.rivalKeysDown = new boolean[4];
-        }
+        // my misses and dropped holds go to the rival (VS) and anyone watching too
+        judge.listener = new NoteJudge.Listener() {
+            @Override public void onMiss(JudgedNote note) { ClientVs.queue(new VsEvent(VsEvent.MISS, note.index, 0)); }
+            @Override public void onHoldDropped(JudgedNote note) { ClientVs.queue(new VsEvent(VsEvent.HOLD_DROPPED, note.index, 0)); }
+        };
+        if (vs) ClientVs.rivalKeysDown = new boolean[4];
         SongClock.reset();
         lastHitTime = new double[] {-1000, -1000, -1000, -1000};
         opponentLastHitTime = new double[] {-1000, -1000, -1000, -1000};
@@ -377,6 +376,9 @@ public class Gameplay {
         Gameplay.running = true;
 
         if (FnfOptions.fnfCamera) FnfCamera.songStarted();
+
+        // tell the server, so players nearby can watch. The music starts when the countdown (and audio offset) is done.
+        ClientNetworking.sendPlaying(true, (int)(COUNTDOWN_BEATS * crochet() - FnfOptions.audioOffset));
     }
 
     // The music ended by itself: save the personal best and show the results screen.
@@ -418,6 +420,7 @@ public class Gameplay {
     }
 
     public static void stopGameplay() {
+        if (running) ClientNetworking.sendPlaying(false, 0); // my song is over, nothing to watch anymore
         RenderNotes.visible = false;
         Gameplay.running = false;
         currentChart = null;

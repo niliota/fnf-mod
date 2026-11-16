@@ -32,5 +32,11 @@ public class ModPayloads {
         // the rival's presses, hits and misses, shown live on the opponent strums
         PayloadTypeRegistry.playC2S().register(VsEventsPayload.TYPE, VsEventsPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(VsRivalEventsPayload.TYPE, VsRivalEventsPayload.CODEC);
+
+        // Spectating (see SpectateManager): players say when they play, players nearby get the game to watch
+        PayloadTypeRegistry.playC2S().register(PlayingPayload.TYPE, PlayingPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(SpectateStartPayload.TYPE, SpectateStartPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(SpectateEventsPayload.TYPE, SpectateEventsPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(SpectateStopPayload.TYPE, SpectateStopPayload.CODEC);
     }
 }

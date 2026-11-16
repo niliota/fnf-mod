@@ -131,9 +131,9 @@ public class ClientVs {
         ClientPlayNetworking.send(new VsReadyPayload());
     }
 
-    // something happened in my game (Gameplay), the rival should see it
+    // something happened in my game (Gameplay): the rival (VS) and anyone watching should see it
     public static void queue(VsEvent event) {
-        if (Gameplay.vs) outgoing.add(event);
+        if (Gameplay.running) outgoing.add(event);
     }
 
     // something happened in the rival's game: show it on their side
@@ -162,7 +162,7 @@ public class ClientVs {
 
     // my final score, once when the song ends or I give up (the server decides the winner with it)
     public static void sendScore(int status) {
-        if (Gameplay.judge == null || !ClientPlayNetworking.canSend(VsScorePayload.TYPE)) return;
+        if (Gameplay.judge == null || Minecraft.getInstance().getConnection() == null || !ClientPlayNetworking.canSend(VsScorePayload.TYPE)) return;
         PlayStats stats = Gameplay.judge.stats;
         ClientPlayNetworking.send(new VsScorePayload(new VsScore(stats.score, stats.misses, stats.accuracy(), stats.maxCombo, status)));
     }

@@ -72,7 +72,10 @@ public class SongSender {
 
     private static void onSongRequest(ServerPlayer player, RequestSongPayload request) {
         SongDataPayload songData = buildSongData(player, request);
-        if (songData != null) ServerPlayNetworking.send(player, songData);
+        if (songData != null) {
+            ServerPlayNetworking.send(player, songData);
+            SpectateManager.songSent(player, songData); // if they play it, players nearby can watch
+        }
     }
 
     // Checks the request and loads the song (chart, timing, speed changes, audio hashes).

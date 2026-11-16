@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import space.niliota.fnfmod.Audio.AudioCache;
 import space.niliota.fnfmod.FnfCamera;
 import space.niliota.fnfmod.FnfOptions;
+import space.niliota.fnfmod.network.ClientSpectate;
 
 import java.util.Locale;
 import java.util.function.DoubleConsumer;
@@ -49,6 +50,11 @@ public class FnfOptionsScreen extends Screen {
         addCheckbox(x, "Show opponent", FnfOptions.showOpponent, value -> FnfOptions.showOpponent = value);
         // VS on the opponent side: my side on the left, so both players see the same stage
         addCheckbox(x, "True POV (VS, opponent side)", FnfOptions.truePov, value -> FnfOptions.truePov = value);
+        // arrows above players playing near me (with their music)
+        addCheckbox(x, "Show players playing nearby", FnfOptions.watchNearby, value -> {
+            FnfOptions.watchNearby = value;
+            if (!value) ClientSpectate.stop();
+        });
 
         // Audio offset: if the music reaches your ears late (bluetooth headphones...), move this up until hits feel right
         addSlider(x, columnWidth,

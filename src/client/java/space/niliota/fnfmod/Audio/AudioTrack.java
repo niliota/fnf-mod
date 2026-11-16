@@ -14,7 +14,21 @@ public class AudioTrack {
     private int source = -1;
     private int buffer = -1;
 
+    // A whole song decoded into raw sound, not handed to OpenAL yet.
+    // Decoding is the slow part (seconds for a long song), so it can be done on another thread, see decode().
+    public record Decoded(ShortBuffer samples, int channels, int sampleRate) {
+        // stb allocates the decoded audio with malloc, Java won't free it by itself
+        public void free() {
+            LibCStdlib.free(samples);
+        }
+    }
+
     public void load(Path audioFile) {
+        upload(decode(audioFile));
+    }
+
+    // the slow part: works on any thread. null if the file couldn't be decoded.
+    public static Decoded decode(Path audioFile) {
         IntBuffer channels   = BufferUtils.createIntBuffer(1);
         IntBuffer sampleRate = BufferUtils.createIntBuffer(1);
 
@@ -24,18 +38,25 @@ public class AudioTrack {
 
         if (rawAudio == null) {
             System.err.println("Failed to load: " + audioFile);
-            return;
+            return null;
         }
+        return new Decoded(rawAudio, channels.get(0), sampleRate.get(0));
+    }
 
-        int format = channels.get(0) == 1 ? AL10.AL_FORMAT_MONO16 : AL10.AL_FORMAT_STEREO16;
+    // the fast part: hands the decoded sound to OpenAL (on the main thread), then frees it
+    public void upload(Decoded decoded) {
+        if (decoded == null) return;
+        int format = decoded.channels() == 1 ? AL10.AL_FORMAT_MONO16 : AL10.AL_FORMAT_STEREO16;
 
         buffer = AL10.alGenBuffers();
-        AL10.alBufferData(buffer, format, rawAudio, sampleRate.get(0));
-        // OpenAL made its own copy, so free stb's decoded audio (stb allocates it with malloc, Java won't free it by itself)
-        LibCStdlib.free(rawAudio);
+        AL10.alBufferData(buffer, format, decoded.samples(), decoded.sampleRate());
+        // OpenAL made its own copy, so free the decoded audio
+        decoded.free();
         source = AL10.alGenSources();
         AL10.alSourcei(source, AL10.AL_BUFFER, buffer);
     }
+
+    public boolean isLoaded() { return source != -1; }
 
     public void play()    { if (source != -1) AL10.alSourcePlay(source);  }
     public void pause()   { if (source != -1) AL10.alSourcePause(source); }
@@ -56,6 +77,9 @@ public class AudioTrack {
     }
 
     public int getSource() { return source; }
+
+    // 0 = silent, 1 = normal (watching someone from further away)
+    public void setGain(float gain) { if (source != -1) AL10.alSourcef(source, AL10.AL_GAIN, gain); }
 
     public boolean isPlaying() {
         if (source == -1) return false;

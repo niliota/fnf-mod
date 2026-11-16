@@ -60,6 +60,12 @@ public class ClientNetworking {
         ClientPlayNetworking.send(request);
     }
 
+    // tell the server I started/stopped playing a song (spectating, see SpectateManager)
+    public static void sendPlaying(boolean playing, int countdownMs) {
+        if (Minecraft.getInstance().getConnection() == null) return; // already left the server (cleaning up after leaving)
+        if (ClientPlayNetworking.canSend(PlayingPayload.TYPE)) ClientPlayNetworking.send(new PlayingPayload(playing, countdownMs));
+    }
+
     // Retry on the results screen: the same song with the same files again
     public static boolean canRetry() {
         return lastRequest != null && ClientPlayNetworking.canSend(RequestSongPayload.TYPE);
@@ -70,7 +76,8 @@ public class ClientNetworking {
     }
 
     private static void onSongData(SongDataPayload song) {
-        // stop whatever was playing before
+        // stop whatever was playing before (and forget the games played nearby, I'm playing myself now)
+        ClientSpectate.stop();
         AudioManager.stopAllTracks();
         Gameplay.stopGameplay();
 
@@ -93,6 +100,7 @@ public class ClientNetworking {
 
     private static void onAudioChunk(AudioChunkPayload chunk) {
         AudioCache.acceptChunk(chunk);
+        ClientSpectate.onAudioChunk(); // maybe the game being watched has all its audio now
 
         if (pendingSong != null && missingFiles(pendingSong).isEmpty()) {
             SongDataPayload song = pendingSong;

@@ -53,6 +53,7 @@ public class VsManager {
         final UUID a, b;
         State state = State.PICKING;
         String songName = "";
+        SongDataPayload song;    // the picked song (spectators get it too)
         boolean aIsBoyfriend = true;
         boolean aReady, bReady;
         VsScore aScore, bScore;  // the latest scores
@@ -191,6 +192,7 @@ public class VsManager {
 
         match.state = State.LOADING;
         match.songName = song.songName();
+        match.song = song;
         match.aIsBoyfriend = player.getUUID().equals(match.a) == pick.boyfriend();
 
         for (ServerPlayer p : List.of(player, rival)) {
@@ -235,12 +237,24 @@ public class VsManager {
         if (score.status() == VsScore.GAVE_UP || (isDone(match.aScore) && isDone(match.bScore))) finishMatch(match, player.getServer());
     }
 
-    // a player's presses/hits/misses, passed straight on to their rival
+    // a player's presses/hits/misses, passed straight on to their rival in VS, and to anyone watching (SpectateManager)
     private static void onEvents(ServerPlayer player, VsEventsPayload events) {
+        SpectateManager.onEvents(player, events.events());
+
         Match match = matches.get(player.getUUID());
         if (match == null || match.state != State.PLAYING) return;
         ServerPlayer rival = player.getServer().getPlayerList().getPlayer(match.other(player.getUUID()));
         if (rival != null) ServerPlayNetworking.send(rival, new VsRivalEventsPayload(events.events()));
+    }
+
+    // For spectating: who plays which side of this player's VS match and the song, or null if they're not playing one
+    public record VsGame(UUID boyfriend, UUID opponent, SongDataPayload song) {}
+
+    public static VsGame vsGame(UUID player) {
+        Match match = matches.get(player);
+        if (match == null || match.state != State.PLAYING || match.song == null) return null;
+        UUID boyfriend = match.aIsBoyfriend ? match.a : match.b;
+        return new VsGame(boyfriend, match.other(boyfriend), match.song);
     }
 
     private static void onTick(MinecraftServer server) {
@@ -295,6 +309,7 @@ public class VsManager {
     private static void endMatch(Match match, MinecraftServer server, String message, boolean rematch) {
         matches.remove(match.a);
         matches.remove(match.b);
+        SpectateManager.gameEnded(match.a, server);
         for (UUID id : List.of(match.a, match.b)) {
             ServerPlayer p = server.getPlayerList().getPlayer(id);
             if (p == null) continue;

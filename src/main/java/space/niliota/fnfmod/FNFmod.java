@@ -31,6 +31,7 @@ public class FNFmod implements ModInitializer {
 		ModPayloads.register();
 		SongSender.register();
 		VsManager.register();
+		SpectateManager.register();
 
 		LOGGER.info("Gonna FNF it so good!");
 		List<Path> packs = PackManager.findPacks();
