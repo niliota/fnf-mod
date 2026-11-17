@@ -1,5 +1,6 @@
 package space.niliota.fnfmod.Screens;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
@@ -13,6 +14,7 @@ import java.util.List;
 
 // First menu (the Mic menu): lists the FNF mods (packs) the server has, plus Options and VS.
 // Opened by right-clicking with the Mic, or with the menu key (O by default).
+// On servers with the mod, "Server songs" / "My songs" at the top picks whose packs to play (see ClientSongCatalog).
 // Typing in the search box finds packs and songs from every pack at once.
 public class PackSelectScreen extends FnfMenuScreen {
     public List<SongCatalogPayload.PackEntry> packs;
@@ -20,11 +22,25 @@ public class PackSelectScreen extends FnfMenuScreen {
 
     public PackSelectScreen(Component title) {
         super(Component.literal("Blocky Friday"));
-        this.packs = ClientSongCatalog.packs;
     }
 
     @Override
     protected void init() {
+        ClientSongCatalog.refresh();
+        this.packs = ClientSongCatalog.packs;
+
+        // Server songs / My songs, the picked one is yellow
+        topRow = 0;
+        if (ClientSongCatalog.canChoose()) {
+            topRow = 24;
+            boolean own = ClientSongCatalog.showingOwn();
+            int width = Math.min(100, (this.width - 24) / 2);
+            this.addRenderableWidget(Button.builder(choice("Server songs", !own), btn -> pick(false))
+                    .bounds(this.width / 2 - width - 2, 20, width, 20).build());
+            this.addRenderableWidget(Button.builder(choice("My songs", own), btn -> pick(true))
+                    .bounds(this.width / 2 + 2, 20, width, 20).build());
+        }
+
         if (ClientVs.inMatch()) {
             heading = Component.literal("VS " + ClientVs.rivalName + ": pick a song, first pick decides");
             titleColor = 0xFF55FFFF;
@@ -43,7 +59,7 @@ public class PackSelectScreen extends FnfMenuScreen {
             }));
         } else {
             Button challenge = button("Challenge (VS)", btn -> Minecraft.getInstance().setScreen(new VsPlayerListScreen(this)));
-            challenge.active = ClientSongCatalog.received; // the server needs the mod (not there = playing my own songs, solo only)
+            challenge.active = ClientSongCatalog.received && !ClientSongCatalog.showingOwn(); // VS needs the server's songs
             buttons.add(challenge);
         }
         buttons.add(button("Done", btn -> onClose()));
@@ -83,6 +99,15 @@ public class PackSelectScreen extends FnfMenuScreen {
             rows.addAll(songRows);
         }
         return rows;
+    }
+
+    private static Component choice(String text, boolean picked) {
+        return picked ? Component.literal(text).withStyle(ChatFormatting.YELLOW) : Component.literal(text);
+    }
+
+    private void pick(boolean own) {
+        ClientSongCatalog.chooseOwn(own);
+        this.rebuildWidgets(); // the other packs, the switch and the VS button change
     }
 
     private MenuList.Row packRow(int packId, SongCatalogPayload.PackEntry pack) {

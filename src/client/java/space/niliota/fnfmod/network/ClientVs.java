@@ -56,7 +56,7 @@ public class ClientVs {
         // my events, once per tick (in pieces if there are a lot)
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (outgoing.isEmpty()) return;
-            if (ClientPlayNetworking.canSend(VsEventsPayload.TYPE)) {
+            if (ClientPlayNetworking.canSend(VsEventsPayload.TYPE) && !ClientNetworking.playingOwnSong()) { // my own songs stay private
                 for (int start = 0; start < outgoing.size(); start += VsEvent.MAX_PER_PACKET) {
                     List<VsEvent> part = outgoing.subList(start, Math.min(outgoing.size(), start + VsEvent.MAX_PER_PACKET));
                     ClientPlayNetworking.send(new VsEventsPayload(new ArrayList<>(part)));

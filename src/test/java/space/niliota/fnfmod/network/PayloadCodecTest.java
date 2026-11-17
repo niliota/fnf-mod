@@ -38,6 +38,15 @@ class PayloadCodecTest {
     }
 
     @Test
+    void personalBestsAndServerSettings() {
+        PersonalBest best = new PersonalBest("Pack A", "bopeebo", "bopeebo-hard.json", 123456, 0.9876, 3, 250, "Sick!", "SFC");
+        PersonalBestsPayload bests = new PersonalBestsPayload(List.of(best, new PersonalBest("Pack B", "fresh", "fresh.json", -20, 0, 2, 0, "?", "")));
+        assertEquals(bests, roundTrip(PersonalBestsPayload.CODEC, bests));
+        assertEquals(new PersonalBestPayload(best), roundTrip(PersonalBestPayload.CODEC, new PersonalBestPayload(best)));
+        assertEquals(new ServerSettingsPayload(true), roundTrip(ServerSettingsPayload.CODEC, new ServerSettingsPayload(true)));
+    }
+
+    @Test
     void requestSong() {
         RequestSongPayload request = new RequestSongPayload(2, 15, List.of(0), List.of(0, 1), 3, -1);
         assertEquals(request, roundTrip(RequestSongPayload.CODEC, request));

@@ -401,8 +401,9 @@ public class Gameplay {
     // countsAsBest = save it as a personal best if it beat it (not for game overs). vsResult = who won, "" if not known yet
     public static void showResults(String heading, int headingColor, boolean countsAsBest, String vsResult) {
         Chart chart = currentChart;
-        HighScores.Best previous = HighScores.best(chart.packName, chart.songName, chart.chartFile);
-        boolean newBest = countsAsBest && HighScores.record(chart.packName, chart.songName, chart.chartFile, judge.stats);
+        boolean own = ClientNetworking.playingOwnSong(); // my own songs and the server's songs have their own bests
+        HighScores.Best previous = HighScores.best(chart.packName, chart.songName, chart.chartFile, own);
+        boolean newBest = countsAsBest && HighScores.record(chart.packName, chart.songName, chart.chartFile, judge.stats, own);
 
         Minecraft.getInstance().setScreen(new ResultsScreen(heading, headingColor, chart.songName, chart.packName, chart.chartFile,
                 judge.stats, newBest, previous,

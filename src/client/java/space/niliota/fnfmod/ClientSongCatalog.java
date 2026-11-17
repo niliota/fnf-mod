@@ -2,50 +2,103 @@ package space.niliota.fnfmod;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
+import space.niliota.fnfmod.network.ClientVs;
 import space.niliota.fnfmod.network.SongCatalogPayload;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static space.niliota.fnfmod.FNFmod.LOGGER;
 
-// The packs and songs the server we're connected to has. Filled in by SongCatalogPayload when joining,
-// emptied again when leaving. The menus show these instead of the client's own fnfpacks/ folder.
-// On a server without the mod, it's my own fnfpacks/ instead (setLocal), and songs get loaded on my side (ClientNetworking).
+// The packs and songs the menus show. Two lists:
+//  * the server's: filled in by SongCatalogPayload when joining, emptied again when leaving
+//  * my own fnfpacks/: on servers without the mod, or when "My songs" is picked at the top of the Mic menu.
+//    Songs then get loaded on my side and nothing goes to the server (ClientNetworking).
+// "My songs" is remembered per server (FnfOptions.ownSongsServers). In a VS match it's always the server's songs.
+// In singleplayer both are the same, the built-in server reads my fnfpacks/ too.
 // Also turns the packs' icons into textures for the menus.
 public class ClientSongCatalog {
-    public static List<SongCatalogPayload.PackEntry> packs = new ArrayList<>();
+    public static List<SongCatalogPayload.PackEntry> packs = new ArrayList<>(); // what the menus show right now
     public static boolean received = false; // the server has the mod and sent its packs
-    public static boolean local = false;    // the server doesn't have the mod, these are my own packs
+    public static boolean local = false;    // the server doesn't have the mod, only my own songs
+
+    private static List<SongCatalogPayload.PackEntry> serverPacks = new ArrayList<>();
+    private static List<SongCatalogPayload.PackEntry> ownPacks = null; // made the first time they're needed
+    private static Boolean showingOwnPacks = null; // which list "packs" (and the icons) are right now
 
     // the pack icons as textures, same order as packs (null = that pack has no icon)
     private static final List<ResourceLocation> icons = new ArrayList<>();
 
+    // the server's packs came in
     public static void set(List<SongCatalogPayload.PackEntry> newPacks) {
-        releaseIcons();
-        packs = newPacks;
+        serverPacks = newPacks;
         received = true;
         local = false;
-
-        for (int i = 0; i < packs.size(); i++) {
-            icons.add(loadIcon(i, packs.get(i).icon()));
-        }
+        showingOwnPacks = null;
+        refresh();
     }
 
-    // my own packs (the same list a server with the mod would send), for servers without the mod
+    // the server doesn't have the mod: my own packs
     public static void setLocal() {
-        set(SongCatalogPayload.fromPacks(PackManager.packs).packs());
         received = false;
         local = true;
+        refresh();
     }
 
     public static void clear() {
         releaseIcons();
         packs = new ArrayList<>();
+        serverPacks = new ArrayList<>();
         received = false;
         local = false;
+        showingOwnPacks = null;
+    }
+
+    // true if the menus show (and play) my own songs
+    public static boolean showingOwn() {
+        if (local) return true;
+        if (!received || ClientVs.inMatch()) return false;
+        String server = serverKey();
+        return server != null && FnfOptions.ownSongsServers.contains(server);
+    }
+
+    // the Server songs / My songs switch is only there on servers that have the mod (not in singleplayer)
+    public static boolean canChoose() {
+        return received && serverKey() != null && !ClientVs.inMatch();
+    }
+
+    public static void chooseOwn(boolean own) {
+        String server = serverKey();
+        if (server == null) return;
+        if (own) FnfOptions.ownSongsServers.add(server);
+        else FnfOptions.ownSongsServers.remove(server);
+        FnfOptions.save();
+        refresh();
+    }
+
+    // makes "packs" the list that should be shown (called when a menu opens)
+    public static void refresh() {
+        boolean own = showingOwn();
+        if (showingOwnPacks != null && showingOwnPacks == own) return;
+
+        if (own && ownPacks == null) ownPacks = SongCatalogPayload.fromPacks(PackManager.packs).packs();
+        releaseIcons();
+        packs = own ? ownPacks : serverPacks;
+        showingOwnPacks = own;
+        for (int i = 0; i < packs.size(); i++) {
+            icons.add(loadIcon(i, packs.get(i).icon()));
+        }
+    }
+
+    // the server we're on, as typed in the server list ("play.example.com"), null in singleplayer
+    private static String serverKey() {
+        ServerData server = Minecraft.getInstance().getCurrentServer();
+        if (server == null || Minecraft.getInstance().isLocalServer()) return null;
+        return server.ip.trim().toLowerCase(Locale.ROOT);
     }
 
     // the icon of a pack, or null if it has none

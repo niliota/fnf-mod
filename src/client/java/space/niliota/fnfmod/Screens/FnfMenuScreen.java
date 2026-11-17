@@ -25,6 +25,7 @@ public abstract class FnfMenuScreen extends Screen {
     protected String subtitle = "";    // grey line under the title (screens without searching)
     protected int titleColor = 0xFFFFFFFF;
     private String searchText = "";    // kept when the screen is rebuilt (window resized)
+    protected int topRow = 0;          // room for an extra row of buttons under the title (the screen adds them itself, at y = 20)
 
     protected FnfMenuScreen(Component title) {
         super(title);
@@ -41,17 +42,17 @@ public abstract class FnfMenuScreen extends Screen {
 
     // Sets up the title, the search box (if searchHint isn't null), the list, and the bottom buttons.
     protected void setupLayout(String searchHint, List<Button> bottomButtons) {
-        int listTop = 30;
+        int listTop = 30 + topRow;
         if (searchHint != null) {
             int searchWidth = Math.min(300, this.width - 40);
-            searchBox = new EditBox(this.font, this.width / 2 - searchWidth / 2, 22, searchWidth, 18, Component.literal("Search"));
+            searchBox = new EditBox(this.font, this.width / 2 - searchWidth / 2, 22 + topRow, searchWidth, 18, Component.literal("Search"));
             searchBox.setHint(Component.literal(searchHint).withStyle(ChatFormatting.DARK_GRAY));
             searchBox.setValue(searchText);
             searchBox.setResponder(text -> {
                 searchText = text;
                 refreshRows();
             });
-            listTop = 46;
+            listTop = 46 + topRow;
         }
 
         list = new MenuList(this.minecraft, this.width, this.height - listTop - 34, listTop);

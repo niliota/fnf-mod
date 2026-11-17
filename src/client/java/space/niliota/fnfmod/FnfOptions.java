@@ -1,11 +1,14 @@
 package space.niliota.fnfmod;
 
 import net.fabricmc.loader.api.FabricLoader;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 
 import static space.niliota.fnfmod.FNFmod.LOGGER;
 
@@ -28,6 +31,7 @@ public class FnfOptions {
     public static int audioOffset = 0;          // ms, higher = notes come later (for when the audio reaches you late, like Psych)
     public static int cacheLimitMB = 1024;      // songs downloaded from servers (fnfcache/) can take this much, 0 = no limit
     public static final int[] CACHE_LIMITS = {256, 512, 1024, 2048, 4096, 8192, 16384, 0}; // the slider's steps, the last one = no limit
+    public static Set<String> ownSongsServers = new HashSet<>(); // servers where "My songs" is picked in the Mic menu (their addresses)
     public static double songVolume = 1;        // 0 to 1, every FNF song (mine and the ones nearby). Minecraft's Master slider counts too
 
     public static void load() {
@@ -46,6 +50,9 @@ public class FnfOptions {
             audioOffset    = (int) clamp(json.optInt("audioOffset", audioOffset), MIN_AUDIO_OFFSET, MAX_AUDIO_OFFSET);
             songVolume     = clamp(json.optDouble("songVolume", songVolume), 0, 1);
             cacheLimitMB   = Math.max(0, json.optInt("cacheLimitMB", cacheLimitMB));
+            ownSongsServers.clear();
+            JSONArray servers = json.optJSONArray("ownSongsServers");
+            if (servers != null) for (int i = 0; i < servers.length(); i++) ownSongsServers.add(servers.optString(i));
         } catch (Exception e) {
             LOGGER.warn("Couldn't read FNFmod's options, using the defaults", e);
         }
@@ -65,6 +72,7 @@ public class FnfOptions {
         json.put("audioOffset", audioOffset);
         json.put("songVolume", songVolume);
         json.put("cacheLimitMB", cacheLimitMB);
+        json.put("ownSongsServers", new JSONArray(ownSongsServers));
         try {
             Files.createDirectories(FILE.getParent());
             Files.writeString(FILE, json.toString(2));

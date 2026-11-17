@@ -35,9 +35,13 @@ On a server, only the server needs the mods. When you pick a song, the server se
 
 Play with the arrow keys. You can rebind them, the camera key (V) and the menu key (O) under Controls → Blocky Friday. The mic menu also has an Options button.
 
-## Servers without the mod
+## Your own songs on servers
 
-Joined a server that doesn't have Blocky Friday? You can still play! Press **O** and you get the songs from your own `fnfpacks` folder. Only you see your notes though, and VS needs the mod on the server.
+Joined a server that doesn't have Blocky Friday? You can still play! Press **O** and you get the songs from your own `fnfpacks` folder.
+
+On servers that do have it, pick **My songs** at the top of the mic menu to play from your own folder instead of the server's. Your choice is remembered for each server.
+
+Your own songs are just for you: nobody sees your notes and VS needs the server's songs. Personal bests for a server's songs are kept by that server, the ones for your own songs (and singleplayer) stay on your computer.
 
 ## VS mode
 

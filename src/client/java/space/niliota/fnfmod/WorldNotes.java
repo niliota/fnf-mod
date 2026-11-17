@@ -47,6 +47,7 @@ public class WorldNotes {
 
     private static void render(WorldRenderContext context) {
         if (ClientSpectate.games().isEmpty() || context.world() == null) return;
+        if (Gameplay.running) return; // not while I play (with "My songs" the server doesn't know I'm playing, so they still come in)
         for (ClientSpectate.Watched game : ClientSpectate.games()) {
             double position = game.songPosition();
             game.boyfriend.remoteUpdate(position);

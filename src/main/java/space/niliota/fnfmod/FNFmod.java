@@ -33,6 +33,7 @@ public class FNFmod implements ModInitializer {
 		SongSender.register();
 		VsManager.register();
 		SpectateManager.register();
+		ServerBests.register(); // personal bests for the server's songs
 
 		LOGGER.info("Gonna FNF it so good!");
 		List<Path> packs = PackManager.findPacks();

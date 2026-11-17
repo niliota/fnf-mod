@@ -16,6 +16,9 @@ public class ModPayloads {
         // server -> client
         PayloadTypeRegistry.playS2C().register(SongCatalogPayload.TYPE, SongCatalogPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ServerSettingsPayload.TYPE, ServerSettingsPayload.CODEC);
+        // personal bests for the server's songs (ServerBests)
+        PayloadTypeRegistry.playS2C().register(PersonalBestsPayload.TYPE, PersonalBestsPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(PersonalBestPayload.TYPE, PersonalBestPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SongDataPayload.TYPE, SongDataPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(AudioChunkPayload.TYPE, AudioChunkPayload.CODEC);
 

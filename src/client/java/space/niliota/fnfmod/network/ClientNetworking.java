@@ -25,18 +25,21 @@ import static space.niliota.fnfmod.FNFmod.LOGGER;
 //
 // On a server without the mod, nobody answers. Then my own fnfpacks/ is used instead: the menus list my packs
 // (ClientSongCatalog.setLocal) and songs get loaded right here, the same way the server would (SongSender.buildSongData).
-// Only I see it, VS and being watched need the mod on the server.
+// The same happens on servers with the mod when "My songs" is picked in the Mic menu.
+// Only I see those: nothing about them is sent to the server (no watching, no VS).
 public class ClientNetworking {
     // the song we got from the server but can't start yet because audio files are still downloading
     private static SongDataPayload pendingSong;
     private static int filesToDownload = 0;
     private static RequestSongPayload lastRequest; // for Retry
+    private static boolean lastRequestOwn = false; // ...and whether it was one of my own songs
+    private static boolean playingOwnSong = false; // the song playing is from my own fnfpacks/ (nothing goes to the server)
     public static boolean requireMic = false;      // the server wants a Mic in the inventory to play (ServerSettingsPayload)
 
     public static void init() {
         ClientPlayNetworking.registerGlobalReceiver(SongCatalogPayload.TYPE, (payload, context) -> ClientSongCatalog.set(payload.packs()));
         ClientPlayNetworking.registerGlobalReceiver(ServerSettingsPayload.TYPE, (payload, context) -> requireMic = payload.requireMic());
-        ClientPlayNetworking.registerGlobalReceiver(SongDataPayload.TYPE, (payload, context) -> onSongData(payload));
+        ClientPlayNetworking.registerGlobalReceiver(SongDataPayload.TYPE, (payload, context) -> onSongData(payload, false));
         ClientPlayNetworking.registerGlobalReceiver(AudioChunkPayload.TYPE, (payload, context) -> onAudioChunk(payload));
 
         // a server without the mod: use my own packs. (Fabric knows by now which packets the server understands.)
@@ -53,6 +56,7 @@ public class ClientNetworking {
             AudioCache.cancelAll();
             pendingSong = null;
             lastRequest = null; // that server's songs are gone
+            playingOwnSong = false;
             requireMic = false;
         }));
 
@@ -69,34 +73,47 @@ public class ClientNetworking {
 
     // Called by SongOptionsScreen's "Start playing" button.
     public static void requestSong(RequestSongPayload request) {
-        if (ClientPlayNetworking.canSend(RequestSongPayload.TYPE)) {
+        requestSong(request, ClientSongCatalog.showingOwn());
+    }
+
+    private static void requestSong(RequestSongPayload request, boolean own) {
+        if (own) {
+            // my own songs: load it from my own fnfpacks/, the server isn't asked
             lastRequest = request;
-            ClientPlayNetworking.send(request);
-        } else if (ClientSongCatalog.local) {
-            // no server to ask, load it from my own fnfpacks/
-            lastRequest = request;
+            lastRequestOwn = true;
             SongDataPayload song = SongSender.buildSongData(request,
                     message -> Minecraft.getInstance().player.displayClientMessage(Component.literal(message), false));
-            if (song != null) onSongData(song);
+            if (song != null) onSongData(song, true);
+        } else if (ClientPlayNetworking.canSend(RequestSongPayload.TYPE)) {
+            lastRequest = request;
+            lastRequestOwn = false;
+            ClientPlayNetworking.send(request);
         }
+    }
+
+    // the song playing is from my own fnfpacks/ (singleplayer counts as the server's, it's the same list there)
+    public static boolean playingOwnSong() {
+        return playingOwnSong;
     }
 
     // tell the server I started/stopped playing a song (spectating, see SpectateManager)
     public static void sendPlaying(boolean playing, int countdownMs) {
         if (Minecraft.getInstance().getConnection() == null) return; // already left the server (cleaning up after leaving)
+        if (playingOwnSong) return; // my own songs stay private
         if (ClientPlayNetworking.canSend(PlayingPayload.TYPE)) ClientPlayNetworking.send(new PlayingPayload(playing, countdownMs));
     }
 
     // Retry on the results screen: the same song with the same files again
     public static boolean canRetry() {
-        return lastRequest != null && (ClientPlayNetworking.canSend(RequestSongPayload.TYPE) || ClientSongCatalog.local);
+        return lastRequest != null && (lastRequestOwn || ClientPlayNetworking.canSend(RequestSongPayload.TYPE));
     }
 
     public static void retryLastSong() {
-        if (canRetry()) requestSong(lastRequest);
+        if (canRetry()) requestSong(lastRequest, lastRequestOwn); // from the same place as last time
     }
 
-    private static void onSongData(SongDataPayload song) {
+    private static void onSongData(SongDataPayload song, boolean own) {
+        playingOwnSong = own;
         // stop whatever was playing before (and forget the games played nearby, I'm playing myself now)
         ClientSpectate.stop();
         AudioManager.stopAllTracks();
