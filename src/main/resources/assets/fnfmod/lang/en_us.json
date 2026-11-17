@@ -6,5 +6,6 @@
   "key.fnfmod.down": "Down Arrow",
   "key.fnfmod.up": "Up Arrow",
   "key.fnfmod.right": "Right Arrow",
-  "key.fnfmod.camera": "FNF Camera (side view)"
+  "key.fnfmod.camera": "FNF Camera (side view)",
+  "key.fnfmod.menu": "Open Blocky Friday menu"
 }

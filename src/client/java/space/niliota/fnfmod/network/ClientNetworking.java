@@ -4,6 +4,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import space.niliota.fnfmod.Audio.AudioCache;
 import space.niliota.fnfmod.Audio.AudioManager;
 import space.niliota.fnfmod.Audio.AudioTrack;
@@ -11,6 +12,7 @@ import space.niliota.fnfmod.Charting.Chart;
 import space.niliota.fnfmod.Charting.ScrollSpeeds;
 import space.niliota.fnfmod.ClientSongCatalog;
 import space.niliota.fnfmod.Gameplay;
+import space.niliota.fnfmod.SongSender;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -20,16 +22,27 @@ import static space.niliota.fnfmod.FNFmod.LOGGER;
 
 // The client side of playing songs from a server (or from the built-in server in singleplayer).
 // Receives the catalog, the chart and the audio, and starts the song once every audio file is there.
+//
+// On a server without the mod, nobody answers. Then my own fnfpacks/ is used instead: the menus list my packs
+// (ClientSongCatalog.setLocal) and songs get loaded right here, the same way the server would (SongSender.buildSongData).
+// Only I see it, VS and being watched need the mod on the server.
 public class ClientNetworking {
     // the song we got from the server but can't start yet because audio files are still downloading
     private static SongDataPayload pendingSong;
     private static int filesToDownload = 0;
     private static RequestSongPayload lastRequest; // for Retry
+    public static boolean requireMic = false;      // the server wants a Mic in the inventory to play (ServerSettingsPayload)
 
     public static void init() {
         ClientPlayNetworking.registerGlobalReceiver(SongCatalogPayload.TYPE, (payload, context) -> ClientSongCatalog.set(payload.packs()));
+        ClientPlayNetworking.registerGlobalReceiver(ServerSettingsPayload.TYPE, (payload, context) -> requireMic = payload.requireMic());
         ClientPlayNetworking.registerGlobalReceiver(SongDataPayload.TYPE, (payload, context) -> onSongData(payload));
         ClientPlayNetworking.registerGlobalReceiver(AudioChunkPayload.TYPE, (payload, context) -> onAudioChunk(payload));
+
+        // a server without the mod: use my own packs. (Fabric knows by now which packets the server understands.)
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> client.execute(() -> {
+            if (!ClientPlayNetworking.canSend(RequestSongPayload.TYPE)) ClientSongCatalog.setLocal();
+        }));
 
         // forget everything about the server when leaving it (or a singleplayer world), and stop the song.
         // OpenAL has to be used from the game's main thread, so the stopping is handed over to it.
@@ -40,6 +53,7 @@ public class ClientNetworking {
             AudioCache.cancelAll();
             pendingSong = null;
             lastRequest = null; // that server's songs are gone
+            requireMic = false;
         }));
 
         // "Downloading song..." text while waiting for audio files
@@ -55,9 +69,16 @@ public class ClientNetworking {
 
     // Called by SongOptionsScreen's "Start playing" button.
     public static void requestSong(RequestSongPayload request) {
-        if (!ClientPlayNetworking.canSend(RequestSongPayload.TYPE)) return;
-        lastRequest = request;
-        ClientPlayNetworking.send(request);
+        if (ClientPlayNetworking.canSend(RequestSongPayload.TYPE)) {
+            lastRequest = request;
+            ClientPlayNetworking.send(request);
+        } else if (ClientSongCatalog.local) {
+            // no server to ask, load it from my own fnfpacks/
+            lastRequest = request;
+            SongDataPayload song = SongSender.buildSongData(request,
+                    message -> Minecraft.getInstance().player.displayClientMessage(Component.literal(message), false));
+            if (song != null) onSongData(song);
+        }
     }
 
     // tell the server I started/stopped playing a song (spectating, see SpectateManager)
@@ -68,7 +89,7 @@ public class ClientNetworking {
 
     // Retry on the results screen: the same song with the same files again
     public static boolean canRetry() {
-        return lastRequest != null && ClientPlayNetworking.canSend(RequestSongPayload.TYPE);
+        return lastRequest != null && (ClientPlayNetworking.canSend(RequestSongPayload.TYPE) || ClientSongCatalog.local);
     }
 
     public static void retryLastSong() {

@@ -15,6 +15,7 @@ public class ModPayloads {
     public static void register() {
         // server -> client
         PayloadTypeRegistry.playS2C().register(SongCatalogPayload.TYPE, SongCatalogPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(ServerSettingsPayload.TYPE, ServerSettingsPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SongDataPayload.TYPE, SongDataPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(AudioChunkPayload.TYPE, AudioChunkPayload.CODEC);
 

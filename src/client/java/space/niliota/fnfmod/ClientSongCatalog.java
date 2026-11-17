@@ -13,10 +13,12 @@ import static space.niliota.fnfmod.FNFmod.LOGGER;
 
 // The packs and songs the server we're connected to has. Filled in by SongCatalogPayload when joining,
 // emptied again when leaving. The menus show these instead of the client's own fnfpacks/ folder.
+// On a server without the mod, it's my own fnfpacks/ instead (setLocal), and songs get loaded on my side (ClientNetworking).
 // Also turns the packs' icons into textures for the menus.
 public class ClientSongCatalog {
     public static List<SongCatalogPayload.PackEntry> packs = new ArrayList<>();
-    public static boolean received = false; // false = the server doesn't have the mod (or hasn't answered yet)
+    public static boolean received = false; // the server has the mod and sent its packs
+    public static boolean local = false;    // the server doesn't have the mod, these are my own packs
 
     // the pack icons as textures, same order as packs (null = that pack has no icon)
     private static final List<ResourceLocation> icons = new ArrayList<>();
@@ -25,16 +27,25 @@ public class ClientSongCatalog {
         releaseIcons();
         packs = newPacks;
         received = true;
+        local = false;
 
         for (int i = 0; i < packs.size(); i++) {
             icons.add(loadIcon(i, packs.get(i).icon()));
         }
     }
 
+    // my own packs (the same list a server with the mod would send), for servers without the mod
+    public static void setLocal() {
+        set(SongCatalogPayload.fromPacks(PackManager.packs).packs());
+        received = false;
+        local = true;
+    }
+
     public static void clear() {
         releaseIcons();
         packs = new ArrayList<>();
         received = false;
+        local = false;
     }
 
     // the icon of a pack, or null if it has none

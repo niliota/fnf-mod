@@ -186,6 +186,7 @@ public class VsManager {
 
         ServerPlayer rival = player.getServer().getPlayerList().getPlayer(match.other(player.getUUID()));
         if (rival == null) return;
+        if (!ServerConfig.canPlay(player)) return;
 
         SongDataPayload song = SongSender.buildSongData(player, pick.request());
         if (song == null) return; // couldn't load it, the picker got a message and can pick something else

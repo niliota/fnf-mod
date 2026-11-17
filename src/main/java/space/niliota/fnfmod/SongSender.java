@@ -13,6 +13,7 @@ import space.niliota.fnfmod.Charting.ScrollSpeeds;
 import space.niliota.fnfmod.network.AudioChunkPayload;
 import space.niliota.fnfmod.network.AudioRequestPayload;
 import space.niliota.fnfmod.network.RequestSongPayload;
+import space.niliota.fnfmod.network.ServerSettingsPayload;
 import space.niliota.fnfmod.network.SongCatalogPayload;
 import space.niliota.fnfmod.network.SongDataPayload;
 
@@ -29,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static space.niliota.fnfmod.FNFmod.LOGGER;
 
@@ -86,9 +88,14 @@ public class SongSender {
         if (!ServerPlayNetworking.canSend(player, SongCatalogPayload.TYPE)) return;
 
         ServerPlayNetworking.send(player, SongCatalogPayload.fromPacks(PackManager.packs));
+        // older versions of the mod don't know this one
+        if (ServerPlayNetworking.canSend(player, ServerSettingsPayload.TYPE)) {
+            ServerPlayNetworking.send(player, new ServerSettingsPayload(ServerConfig.requireMic));
+        }
     }
 
     private static void onSongRequest(ServerPlayer player, RequestSongPayload request) {
+        if (!ServerConfig.canPlay(player)) return; // checked here too, the client could skip its own check
         SongDataPayload songData = buildSongData(player, request);
         if (songData != null) {
             ServerPlayNetworking.send(player, songData);
@@ -100,6 +107,11 @@ public class SongSender {
     // Returns null if the request was invalid or the song couldn't be loaded (the player gets a message for the latter).
     // Also used by VsManager, which sends the result to both players of a match.
     public static SongDataPayload buildSongData(ServerPlayer player, RequestSongPayload request) {
+        return buildSongData(request, message -> player.sendSystemMessage(Component.literal(message)));
+    }
+
+    // Same, but problems go to "tell". The client uses this one on servers without the mod, with its own fnfpacks/.
+    public static SongDataPayload buildSongData(RequestSongPayload request, Consumer<String> tell) {
         // Check everything the client sent, it could be anything.
         if (!inRange(request.packId(), PackManager.packs.size())) return null;
         FNFPack pack = PackManager.packs.get(request.packId());
@@ -127,7 +139,7 @@ public class SongSender {
         try {
             List<ChartNote> notes = ChartParser.parseNotes(chartFile, song.engineType);
             if (notes.size() > SongDataPayload.MAX_NOTES) {
-                player.sendSystemMessage(Component.literal("This chart has too many notes (" + notes.size() + ")."));
+                tell.accept("This chart has too many notes (" + notes.size() + ").");
                 return null;
             }
 
@@ -152,7 +164,7 @@ public class SongSender {
         } catch (Exception e) {
             // the full error stays in the server log, the player only gets a short message (errors can contain server paths)
             LOGGER.error("Couldn't load song {} from pack {}", song.name, pack.name, e);
-            player.sendSystemMessage(Component.literal("Couldn't load " + song.name + ", the chart might be in a format that isn't supported yet."));
+            tell.accept("Couldn't load " + song.name + ", the chart might be in a format that isn't supported yet.");
             return null;
         }
     }

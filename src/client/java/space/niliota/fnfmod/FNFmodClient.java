@@ -28,6 +28,7 @@ public class FNFmodClient implements ClientModInitializer {
 	public static KeyMapping upKey;
 	public static KeyMapping rightKey;
 	public static KeyMapping cameraKey;
+	public static KeyMapping menuKey;
 
 	// NoteManager Instance (maybe it shouldn't have one (prob should for multiplayer))
 	public static NoteManager noteManager = new NoteManager();
@@ -52,6 +53,22 @@ public class FNFmodClient implements ClientModInitializer {
 				if (Gameplay.running) FnfCamera.toggle();
 			}
 			FnfCamera.tick(client);
+		});
+
+		// Opens the Mic menu without the Mic (O by default). Needed on servers without the mod, which don't have the Mic.
+		// Works mid-song too, to change options or stop quickly (it pauses like the Esc menu: in singleplayer only).
+		menuKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.fnfmod.menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_O, "category.fnfmod.keys"));
+		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			while (menuKey.consumeClick()) {
+				if (client.screen == null && client.player != null) {
+					// some servers want a Mic first (requireMic in their config). Mid-song it always works, to stop or change options.
+					if (ClientNetworking.requireMic && !Gameplay.running && !client.player.getInventory().contains(stack -> stack.is(ModItems.MIC))) {
+						client.player.displayClientMessage(Component.literal("This server needs a Mic: craft one from a note block on top of a stick"), true);
+						continue;
+					}
+					client.setScreen(new PackSelectScreen(Component.empty()));
+				}
+			}
 		});
 
 

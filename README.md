@@ -31,9 +31,13 @@ On a server, only the server needs the mods. When you pick a song, the server se
 1. Install [Fabric](https://fabricmc.net/use/) for **Minecraft 1.21.1** and [Fabric API](https://modrinth.com/mod/fabric-api)
 2. Put Blocky Friday in your `mods` folder and start the game once. An `fnfpacks` folder shows up in your `.minecraft` folder (on a server, next to the server jar)
 3. Drop FNF mods into `fnfpacks`, one folder each. The whole downloaded mod is fine, `.exe` and all
-4. Grab the **Mic** from the Tools & Utilities tab (or `/give @s fnfmod:mic`) and right-click
+4. Craft a **Mic** (a note block on top of a stick) and right-click with it. Or just press **O** to open the menu
 
-Play with the arrow keys. You can rebind them, and the camera key (V), under Controls → Blocky Friday. The mic menu also has an Options button.
+Play with the arrow keys. You can rebind them, the camera key (V) and the menu key (O) under Controls → Blocky Friday. The mic menu also has an Options button.
+
+## Servers without the mod
+
+Joined a server that doesn't have Blocky Friday? You can still play! Press **O** and you get the songs from your own `fnfpacks` folder. Only you see your notes though, and VS needs the mod on the server.
 
 ## VS mode
 

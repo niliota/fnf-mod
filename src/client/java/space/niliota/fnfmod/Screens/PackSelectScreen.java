@@ -11,7 +11,8 @@ import space.niliota.fnfmod.network.SongCatalogPayload;
 import java.util.ArrayList;
 import java.util.List;
 
-// First menu (the Mic menu): lists the FNF mods (packs) the server has, plus Options and VS. Opened by right-clicking with the Mic.
+// First menu (the Mic menu): lists the FNF mods (packs) the server has, plus Options and VS.
+// Opened by right-clicking with the Mic, or with the menu key (O by default).
 // Typing in the search box finds packs and songs from every pack at once.
 public class PackSelectScreen extends FnfMenuScreen {
     public List<SongCatalogPayload.PackEntry> packs;
@@ -42,7 +43,7 @@ public class PackSelectScreen extends FnfMenuScreen {
             }));
         } else {
             Button challenge = button("Challenge (VS)", btn -> Minecraft.getInstance().setScreen(new VsPlayerListScreen(this)));
-            challenge.active = ClientSongCatalog.received; // the server needs the mod
+            challenge.active = ClientSongCatalog.received; // the server needs the mod (not there = playing my own songs, solo only)
             buttons.add(challenge);
         }
         buttons.add(button("Done", btn -> onClose()));
@@ -95,7 +96,7 @@ public class PackSelectScreen extends FnfMenuScreen {
     // let the player know why the list is empty
     @Override
     protected String emptyText() {
-        if (!ClientSongCatalog.received) return "This server doesn't have FNFmod installed.";
+        if (!ClientSongCatalog.received && !ClientSongCatalog.local) return "Waiting for the server's songs...";
         if (packs.isEmpty()) return "No packs found, put FNF mods into the fnfpacks folder.";
         return "Nothing found.";
     }
