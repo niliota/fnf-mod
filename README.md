@@ -63,4 +63,4 @@ Made by niliota.
 
 Friday Night Funkin' is made by The Funkin' Crew. Blocky Friday isn't affiliated with them, and the songs and charts all come from the mods you add yourself.
 
-Licensed under [GPL-3.0-or-later](LICENSE).
+Copyright (C) 2026 niliota. Licensed under [GPL-3.0-or-later](LICENSE).
