@@ -2,8 +2,8 @@
 	"schemaVersion": 1,
 	"id": "fnfmod",
 	"version": "${version}",
-	"name": "FNFmod",
-	"description": "Funkin' on a Blocky Friday, yeah!",
+	"name": "Blocky Friday",
+	"description": "Play Friday Night Funkin' mods inside Minecraft, on your own or against your friends. Funkin' on a Blocky Friday, yeah!",
 	"authors": [
 		"niliota"
 	],

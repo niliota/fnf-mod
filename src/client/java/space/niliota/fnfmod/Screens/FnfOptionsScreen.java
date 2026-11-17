@@ -32,7 +32,7 @@ public class FnfOptionsScreen extends Screen {
     private int y;                         // where the next option goes
 
     public FnfOptionsScreen(Screen parent) {
-        super(Component.literal("FNFmod Options"));
+        super(Component.literal("Blocky Friday Options"));
         this.parent = parent;
     }
 

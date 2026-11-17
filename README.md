@@ -1,6 +1,6 @@
-<p align="center"><img src="src/main/resources/assets/fnfmod/icon.png" width="128" alt="FNFmod icon"></p>
+<p align="center"><img src="src/main/resources/assets/fnfmod/icon.png" width="128" alt="Blocky Friday icon"></p>
 
-# FNFmod
+# Blocky Friday
 
 *Funkin' on a Blocky Friday, yeah!*
 
@@ -8,7 +8,7 @@ Play Friday Night Funkin' mods inside Minecraft. Grab a whole FNF mod, drop the 
 
 ## How it works
 
-FNFmod reads FNF mods the way the engines themselves do. It digs through the mod's folders, finds every song with its charts and music, and works out the BPM, scroll speed and everything else from each engine's own files. You never touch any of that.
+Blocky Friday reads FNF mods the way the engines themselves do. It digs through the mod's folders, finds every song with its charts and music, and works out the BPM, scroll speed and everything else from each engine's own files. You never touch any of that.
 
 On a server, only the server needs the mods. When you pick a song, the server sends you the chart and the music. Songs stay downloaded afterwards, so each one only downloads once.
 
@@ -29,11 +29,11 @@ On a server, only the server needs the mods. When you pick a song, the server se
 ## Getting started
 
 1. Install [Fabric](https://fabricmc.net/use/) for **Minecraft 1.21.1** and [Fabric API](https://modrinth.com/mod/fabric-api)
-2. Put FNFmod in your `mods` folder and start the game once. An `fnfpacks` folder shows up in your `.minecraft` folder (on a server, next to the server jar)
+2. Put Blocky Friday in your `mods` folder and start the game once. An `fnfpacks` folder shows up in your `.minecraft` folder (on a server, next to the server jar)
 3. Drop FNF mods into `fnfpacks`, one folder each. The whole downloaded mod is fine, `.exe` and all
 4. Grab the **Mic** from the Tools & Utilities tab (or `/give @s fnfmod:mic`) and right-click
 
-Play with the arrow keys. You can rebind them, and the camera key (V), under Controls → FNFmod. The mic menu also has an Options button.
+Play with the arrow keys. You can rebind them, and the camera key (V), under Controls → Blocky Friday. The mic menu also has an Options button.
 
 ## VS mode
 
@@ -47,10 +47,20 @@ Right-click another player with the mic, or pick them from **Challenge (VS)** in
 
 Found a song that doesn't load, or something weird? [Open an issue](https://github.com/niliota/fnf-mod/issues).
 
+## Respect the mod creators
+
+Every song you play here was made by someone in the FNF community, and lots of love went into it. Blocky Friday doesn't come with any songs, you bring the mods yourself. So:
+
+- Credit the people who made the mods you play, especially on servers and in videos
+- Follow each mod's own rules. If its creators don't want it used outside the game, leave it out
+- Never pass someone else's songs, charts or art off as your own
+
+On a server, the songs get sent to everyone who plays them, so server owners: pick your packs with care.
+
 ## Credits
 
 Made by niliota.
 
-Friday Night Funkin' is made by The Funkin' Crew. FNFmod isn't affiliated with them, and the songs and charts all come from the mods you add yourself.
+Friday Night Funkin' is made by The Funkin' Crew. Blocky Friday isn't affiliated with them, and the songs and charts all come from the mods you add yourself.
 
 Licensed under [GPL-3.0-or-later](LICENSE).

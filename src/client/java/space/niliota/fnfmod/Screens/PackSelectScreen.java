@@ -18,7 +18,7 @@ public class PackSelectScreen extends FnfMenuScreen {
 
 
     public PackSelectScreen(Component title) {
-        super(Component.literal("FNFmod"));
+        super(Component.literal("Blocky Friday"));
         this.packs = ClientSongCatalog.packs;
     }
 
