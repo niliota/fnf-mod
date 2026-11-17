@@ -184,7 +184,7 @@ public class ClientSpectate {
         }
 
         double volume = 1 - (closestDistance - FULL_VOLUME_RANGE) / (SILENT_RANGE - FULL_VOLUME_RANGE);
-        for (AudioTrack track : tracks) track.setGain((float) Math.max(0, Math.min(1, volume)));
+        for (AudioTrack track : tracks) track.setGain((float) (Math.max(0, Math.min(1, volume)) * FnfOptions.songVolume));
     }
 
     private static void requestAudio(Watched game) {

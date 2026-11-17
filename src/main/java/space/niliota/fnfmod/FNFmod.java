@@ -28,6 +28,7 @@ public class FNFmod implements ModInitializer {
 		ModItems.registerModItems();
 
 		// Networking: register all packets, then the server side of sending songs to players
+		ServerConfig.load(); // limits for sending songs (config/fnfmod-server.json)
 		ModPayloads.register();
 		SongSender.register();
 		VsManager.register();

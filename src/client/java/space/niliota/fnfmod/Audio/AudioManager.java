@@ -2,6 +2,7 @@ package space.niliota.fnfmod.Audio;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.openal.AL10;
+import space.niliota.fnfmod.FnfOptions;
 
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ public class AudioManager {
     public static List<AudioTrack> tracks = new ArrayList<>();
 
     public static void addTrack(AudioTrack track) {
+        track.setGain((float) FnfOptions.songVolume);
         tracks.add(track);
     }
 

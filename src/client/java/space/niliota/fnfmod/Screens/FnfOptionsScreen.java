@@ -8,6 +8,8 @@ import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import space.niliota.fnfmod.Audio.AudioCache;
+import space.niliota.fnfmod.Audio.AudioManager;
+import space.niliota.fnfmod.Audio.AudioTrack;
 import space.niliota.fnfmod.FnfCamera;
 import space.niliota.fnfmod.FnfOptions;
 import space.niliota.fnfmod.network.ClientSpectate;
@@ -61,6 +63,13 @@ public class FnfOptionsScreen extends Screen {
                 () -> (FnfOptions.audioOffset - FnfOptions.MIN_AUDIO_OFFSET) / (double)(FnfOptions.MAX_AUDIO_OFFSET - FnfOptions.MIN_AUDIO_OFFSET),
                 value -> FnfOptions.audioOffset = (int) Math.round(FnfOptions.MIN_AUDIO_OFFSET + value * (FnfOptions.MAX_AUDIO_OFFSET - FnfOptions.MIN_AUDIO_OFFSET)),
                 () -> "Audio offset: " + FnfOptions.audioOffset + " ms");
+        // how loud FNF songs are (on top of Minecraft's Master volume)
+        addSlider(x, columnWidth, () -> FnfOptions.songVolume,
+                value -> {
+                    FnfOptions.songVolume = Math.round(value * 100) / 100.0;
+                    for (AudioTrack track : AudioManager.tracks) track.setGain((float) FnfOptions.songVolume); // a song might be paused right now
+                },
+                () -> "Song volume: " + Math.round(FnfOptions.songVolume * 100) + "%");
         y += 6;
 
         // Camera

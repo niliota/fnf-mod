@@ -17,14 +17,15 @@ import space.niliota.fnfmod.network.SongCatalogPayload;
 import space.niliota.fnfmod.network.SongDataPayload;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,28 +35,45 @@ import static space.niliota.fnfmod.FNFmod.LOGGER;
 // The server side of playing songs. (In singleplayer this runs on the built-in server, so it's used there too.)
 //  * sends the song catalog to players when they join
 //  * answers song requests with the parsed chart
-//  * sends audio files to players that don't have them, a few chunks every tick so the connection doesn't get flooded
+//  * sends audio files to players that don't have them, a bit every tick so the connection doesn't get flooded
+//
+// Sending audio is limited (ServerConfig), so a public server doesn't run out of upload or memory:
+//  * everyone downloading shares uploadLimitMBps, split evenly every tick
+//  * files are read piece by piece while they're sent, never held in memory whole
+//  * a player can only have MAX_QUEUED_FILES waiting, and download playerLimitMB per playerLimitMinutes
 public class SongSender {
-    public static final int CHUNKS_PER_TICK = 2; // per player, 2 * 256 KB * 20 ticks = ~10 MB/s
     private static final int MAX_FILES_PER_REQUEST = 16; // nobody needs more audio files than this for one song
+    private static final int MAX_QUEUED_FILES = 32;      // a song or two (and the one being watched), per player
+    private static final int MIN_PIECE = 16 * 1024;      // even with lots of players downloading, pieces aren't smaller than this
 
     // audio files that are still being sent, per player
     private static final Map<UUID, Deque<Transfer>> transfers = new HashMap<>();
+    // how much each player downloaded since limitStart (for playerLimitMB)
+    private static final Map<UUID, Usage> usage = new HashMap<>();
 
     private static class Transfer {
         String hash;
-        byte[] data;
+        Path file;
+        int size;
         int offset = 0; // how much has been sent already
 
-        Transfer(String hash, byte[] data) {
+        Transfer(String hash, Path file, int size) {
             this.hash = hash;
-            this.data = data;
+            this.file = file;
+            this.size = size;
         }
+    }
+
+    private static class Usage {
+        long since = System.currentTimeMillis();
+        long bytes = 0;
+        boolean warned = false; // the player was told they hit the limit
     }
 
     public static void register() {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> sendCatalog(handler.getPlayer()));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> transfers.remove(handler.getPlayer().getUUID()));
+        // usage is kept after leaving on purpose, so rejoining doesn't reset the download limit
 
         ServerPlayNetworking.registerGlobalReceiver(RequestSongPayload.TYPE, (payload, context) -> onSongRequest(context.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(AudioRequestPayload.TYPE, (payload, context) -> onAudioRequest(context.player(), payload));
@@ -143,7 +161,17 @@ public class SongSender {
         if (request.hashes().size() > MAX_FILES_PER_REQUEST) return;
 
         Deque<Transfer> queue = transfers.computeIfAbsent(player.getUUID(), uuid -> new ArrayDeque<>());
+        Usage used = usage.computeIfAbsent(player.getUUID(), uuid -> new Usage());
+        long now = System.currentTimeMillis();
+        if (now - used.since > ServerConfig.playerLimitMillis()) { // a new period, start counting from 0
+            used.since = now;
+            used.bytes = 0;
+            used.warned = false;
+        }
+
         for (String hash : request.hashes()) {
+            if (queue.size() >= MAX_QUEUED_FILES) return;
+
             // only files that got hashed by a song request can be sent, so only files from fnfpacks/
             Path file = AudioHashes.findFile(hash);
             if (file == null) continue;
@@ -153,37 +181,70 @@ public class SongSender {
             if (alreadyQueued) continue;
 
             try {
-                queue.add(new Transfer(hash, Files.readAllBytes(file)));
+                long size = Files.size(file);
+                if (size > Integer.MAX_VALUE) continue;
+                if (used.bytes + size > ServerConfig.playerLimitBytes()) {
+                    if (!used.warned) {
+                        long minutesLeft = Math.max(1, (ServerConfig.playerLimitMillis() - (now - used.since) + 59_999) / 60_000);
+                        player.sendSystemMessage(Component.literal("You've downloaded a lot of songs from this server, try again in "
+                                + minutesLeft + (minutesLeft == 1 ? " minute." : " minutes.")));
+                        used.warned = true;
+                    }
+                    return;
+                }
+                used.bytes += size;
+                queue.add(new Transfer(hash, file, (int) size));
             } catch (IOException e) {
                 LOGGER.error("Couldn't read audio file for {}", player.getName().getString(), e);
             }
         }
     }
 
-    // Runs every server tick, sends a few chunks to everyone who's downloading something.
+    // Runs every server tick: everyone who's downloading something gets an even share of this tick's upload.
     private static void sendChunks(MinecraftServer server) {
-        Iterator<Map.Entry<UUID, Deque<Transfer>>> iterator = transfers.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<UUID, Deque<Transfer>> entry = iterator.next();
+        transfers.entrySet().removeIf(entry -> entry.getValue().isEmpty() || server.getPlayerList().getPlayer(entry.getKey()) == null);
+        if (transfers.isEmpty()) return;
+
+        long share = Math.max(MIN_PIECE, ServerConfig.uploadBytesPerTick() / transfers.size());
+        for (Map.Entry<UUID, Deque<Transfer>> entry : transfers.entrySet()) {
             ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
             Deque<Transfer> queue = entry.getValue();
 
-            if (player == null || queue.isEmpty()) {
-                iterator.remove();
-                continue;
-            }
-
-            for (int i = 0; i < CHUNKS_PER_TICK && !queue.isEmpty(); i++) {
+            long left = share;
+            while (left > 0 && !queue.isEmpty()) {
                 Transfer transfer = queue.peek();
-                int end = Math.min(transfer.offset + AudioChunkPayload.CHUNK_SIZE, transfer.data.length);
-                byte[] chunk = Arrays.copyOfRange(transfer.data, transfer.offset, end);
+                int length = (int) Math.min(Math.min(left, AudioChunkPayload.CHUNK_SIZE), transfer.size - transfer.offset);
+                byte[] chunk;
+                try {
+                    chunk = readPiece(transfer.file, transfer.offset, length);
+                } catch (IOException e) {
+                    LOGGER.error("Couldn't read audio file for {}", player.getName().getString(), e);
+                    queue.poll(); // skip this file
+                    continue;
+                }
 
-                ServerPlayNetworking.send(player, new AudioChunkPayload(transfer.hash, transfer.offset, transfer.data.length, chunk));
+                ServerPlayNetworking.send(player, new AudioChunkPayload(transfer.hash, transfer.offset, transfer.size, chunk));
 
-                transfer.offset = end;
-                if (transfer.offset >= transfer.data.length) queue.poll(); // this file is done
+                transfer.offset += length;
+                left -= length;
+                if (transfer.offset >= transfer.size) queue.poll(); // this file is done
             }
         }
+    }
+
+    // one piece of a file, read straight from the disk
+    private static byte[] readPiece(Path file, int offset, int length) throws IOException {
+        byte[] piece = new byte[length];
+        try (FileChannel channel = FileChannel.open(file, StandardOpenOption.READ)) {
+            ByteBuffer buffer = ByteBuffer.wrap(piece);
+            long position = offset;
+            while (buffer.hasRemaining()) {
+                int read = channel.read(buffer, position);
+                if (read < 0) throw new IOException("The file got shorter while it was being sent");
+                position += read;
+            }
+        }
+        return piece;
     }
 
     private static boolean inRange(int index, int size) {

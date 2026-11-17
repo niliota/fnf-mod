@@ -25,6 +25,7 @@ public class FnfOptions {
     public static boolean fnfCamera = false;    // switch to the side view camera while a song plays
     public static double cameraDistance = 5.5;  // blocks, see FnfCamera
     public static int audioOffset = 0;          // ms, higher = notes come later (for when the audio reaches you late, like Psych)
+    public static double songVolume = 1;        // 0 to 1, every FNF song (mine and the ones nearby). Minecraft's Master slider counts too
 
     public static void load() {
         if (!Files.exists(FILE)) return;
@@ -39,6 +40,7 @@ public class FnfOptions {
             fnfCamera      = json.optBoolean("fnfCamera", fnfCamera);
             cameraDistance = clamp(json.optDouble("cameraDistance", cameraDistance), FnfCamera.MIN_DISTANCE, FnfCamera.MAX_DISTANCE);
             audioOffset    = (int) clamp(json.optInt("audioOffset", audioOffset), MIN_AUDIO_OFFSET, MAX_AUDIO_OFFSET);
+            songVolume     = clamp(json.optDouble("songVolume", songVolume), 0, 1);
         } catch (Exception e) {
             LOGGER.warn("Couldn't read FNFmod's options, using the defaults", e);
         }
@@ -55,6 +57,7 @@ public class FnfOptions {
         json.put("fnfCamera", fnfCamera);
         json.put("cameraDistance", cameraDistance);
         json.put("audioOffset", audioOffset);
+        json.put("songVolume", songVolume);
         try {
             Files.createDirectories(FILE.getParent());
             Files.writeString(FILE, json.toString(2));
