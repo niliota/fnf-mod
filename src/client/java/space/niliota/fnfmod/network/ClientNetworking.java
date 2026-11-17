@@ -141,6 +141,7 @@ public class ClientNetworking {
 
     // Everything is here, load the audio and start playing.
     private static void startSong(SongDataPayload song) {
+        AudioCache.markUsed(song.audioHashes()); // played just now, so it's the last to go when the cache is full
         // close the menu, otherwise the arrow keys go to the menu instead of the game
         Minecraft.getInstance().setScreen(null);
 

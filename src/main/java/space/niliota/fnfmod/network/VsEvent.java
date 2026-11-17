@@ -10,8 +10,9 @@ import java.util.List;
 //  HIT               - value = note number, extra = Rating (its position in the Rating enum)
 //  MISS              - value = note number
 //  HOLD_DROPPED      - value = note number
+//  MISS_PRESS        - value = lane (pressed with no note there, ghost tapping off). Older versions just ignore it.
 public record VsEvent(int type, int value, int extra) {
-    public static final int KEY_DOWN = 0, KEY_UP = 1, HIT = 2, MISS = 3, HOLD_DROPPED = 4;
+    public static final int KEY_DOWN = 0, KEY_UP = 1, HIT = 2, MISS = 3, HOLD_DROPPED = 4, MISS_PRESS = 5;
     public static final int MAX_PER_PACKET = 512; // way more than anyone can do in a tick, anything above is ignored
 
     public static void writeList(FriendlyByteBuf buf, List<VsEvent> events) {

@@ -17,6 +17,7 @@ public class FnfOptions {
     public static final int MIN_AUDIO_OFFSET = -500, MAX_AUDIO_OFFSET = 500; // same range as Psych's "Note Offset"
 
     public static boolean noFail = false;       // health running out doesn't end the song
+    public static boolean ghostTapping = true;  // pressing with no note there is fine (off = it's a miss, like Psych's option)
     public static boolean middleScroll = false; // player's strums in the middle of the screen
     public static boolean downscroll = false;   // strums at the bottom, notes come down from the top
     public static boolean showOpponent = true;  // show the opponent's strums and notes too
@@ -25,6 +26,8 @@ public class FnfOptions {
     public static boolean fnfCamera = true;     // switch to the side view camera while a song plays
     public static double cameraDistance = 5.5;  // blocks, see FnfCamera
     public static int audioOffset = 0;          // ms, higher = notes come later (for when the audio reaches you late, like Psych)
+    public static int cacheLimitMB = 1024;      // songs downloaded from servers (fnfcache/) can take this much, 0 = no limit
+    public static final int[] CACHE_LIMITS = {256, 512, 1024, 2048, 4096, 8192, 16384, 0}; // the slider's steps, the last one = no limit
     public static double songVolume = 1;        // 0 to 1, every FNF song (mine and the ones nearby). Minecraft's Master slider counts too
 
     public static void load() {
@@ -32,6 +35,7 @@ public class FnfOptions {
         try {
             JSONObject json = new JSONObject(Files.readString(FILE));
             noFail         = json.optBoolean("noFail", noFail);
+            ghostTapping   = json.optBoolean("ghostTapping", ghostTapping);
             middleScroll   = json.optBoolean("middleScroll", middleScroll);
             downscroll     = json.optBoolean("downscroll", downscroll);
             showOpponent   = json.optBoolean("showOpponent", showOpponent);
@@ -41,6 +45,7 @@ public class FnfOptions {
             cameraDistance = clamp(json.optDouble("cameraDistance", cameraDistance), FnfCamera.MIN_DISTANCE, FnfCamera.MAX_DISTANCE);
             audioOffset    = (int) clamp(json.optInt("audioOffset", audioOffset), MIN_AUDIO_OFFSET, MAX_AUDIO_OFFSET);
             songVolume     = clamp(json.optDouble("songVolume", songVolume), 0, 1);
+            cacheLimitMB   = Math.max(0, json.optInt("cacheLimitMB", cacheLimitMB));
         } catch (Exception e) {
             LOGGER.warn("Couldn't read FNFmod's options, using the defaults", e);
         }
@@ -49,6 +54,7 @@ public class FnfOptions {
     public static void save() {
         JSONObject json = new JSONObject();
         json.put("noFail", noFail);
+        json.put("ghostTapping", ghostTapping);
         json.put("middleScroll", middleScroll);
         json.put("downscroll", downscroll);
         json.put("showOpponent", showOpponent);
@@ -58,6 +64,7 @@ public class FnfOptions {
         json.put("cameraDistance", cameraDistance);
         json.put("audioOffset", audioOffset);
         json.put("songVolume", songVolume);
+        json.put("cacheLimitMB", cacheLimitMB);
         try {
             Files.createDirectories(FILE.getParent());
             Files.writeString(FILE, json.toString(2));

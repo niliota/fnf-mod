@@ -128,6 +128,7 @@ public class ClientSpectate {
                     }
                 }
                 case VsEvent.MISS -> side.applyMiss(event.value());
+                case VsEvent.MISS_PRESS -> side.missPress();
                 case VsEvent.HOLD_DROPPED -> side.applyHoldDropped(event.value());
             }
         }
@@ -213,6 +214,7 @@ public class ClientSpectate {
     private static boolean loadTracks() {
         if (loaded) return true;
         if (decoding == null) {
+            AudioCache.markUsed(audioHashes);
             List<Path> files = new ArrayList<>();
             for (String hash : audioHashes) files.add(AudioCache.find(hash));
             decoding = CompletableFuture.supplyAsync(() -> {

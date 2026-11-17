@@ -44,6 +44,24 @@ class NoteJudgeTest {
         assertEquals(166.67, NoteJudge.SAFE_ZONE, 0.01);
     }
 
+    // ghost tapping off: pressing with nothing there is Psych's noteMissPress (half a miss's health, -10 score, a miss)
+    @Test
+    void missPressMatchesPsych() {
+        NoteJudge judge = judge(note(1000, 0, 0, true));
+        assertNull(judge.press(1, 1000)); // nothing in lane 1
+        judge.missPress();
+
+        PlayStats stats = judge.stats;
+        assertEquals(-10, stats.score);
+        assertEquals(1, stats.misses);
+        assertEquals(1, stats.totalPlayed);
+        assertEquals(0, stats.combo);
+        assertEquals(1.0 - 0.05, stats.health, 1e-9);
+
+        // the note itself can still be hit afterwards
+        assertNotNull(judge.press(0, 1000));
+    }
+
     @Test
     void onlyPlaysOneSide() {
         NoteJudge judge = judge(note(1000, 0, 0, true), note(1000, 1, 0, false));

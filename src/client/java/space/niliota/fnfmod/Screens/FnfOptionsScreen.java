@@ -47,6 +47,8 @@ public class FnfOptionsScreen extends Screen {
 
         // Gameplay
         addCheckbox(x, "No fail", FnfOptions.noFail, value -> FnfOptions.noFail = value);
+        // off: pressing with no note there counts as a miss
+        addCheckbox(x, "Ghost tapping", FnfOptions.ghostTapping, value -> FnfOptions.ghostTapping = value);
         addCheckbox(x, "Middle scroll", FnfOptions.middleScroll, value -> FnfOptions.middleScroll = value);
         addCheckbox(x, "Downscroll", FnfOptions.downscroll, value -> FnfOptions.downscroll = value);
         addCheckbox(x, "Show opponent", FnfOptions.showOpponent, value -> FnfOptions.showOpponent = value);
@@ -79,6 +81,14 @@ public class FnfOptionsScreen extends Screen {
                 value -> FnfOptions.cameraDistance = Math.round((FnfCamera.MIN_DISTANCE + value * (FnfCamera.MAX_DISTANCE - FnfCamera.MIN_DISTANCE)) * 2) / 2.0,
                 () -> String.format(Locale.ROOT, "Camera distance: %.1f", FnfOptions.cameraDistance));
         y += 6;
+
+        // How much space songs downloaded from servers can take. Over it, the ones played the longest ago get deleted.
+        int steps = FnfOptions.CACHE_LIMITS.length - 1;
+        addSlider(x, columnWidth,
+                () -> cacheStep() / (double) steps,
+                value -> FnfOptions.cacheLimitMB = FnfOptions.CACHE_LIMITS[(int) Math.round(value * steps)],
+                () -> "Downloaded songs limit: " + (FnfOptions.cacheLimitMB == 0 ? "no limit"
+                        : FnfOptions.cacheLimitMB < 1024 ? FnfOptions.cacheLimitMB + " MB" : FnfOptions.cacheLimitMB / 1024 + " GB"));
 
         // Songs downloaded from servers (fnfcache/), with how much space they take. Asks before deleting.
         long cacheSize = AudioCache.cacheSize();
@@ -144,6 +154,18 @@ public class FnfOptionsScreen extends Screen {
     @Override
     public void removed() {
         FnfOptions.save();
+        AudioCache.trim(); // the limit might be lower now
+    }
+
+    // where the current cache limit is on the slider (the closest step)
+    private static int cacheStep() {
+        int best = 0;
+        for (int i = 0; i < FnfOptions.CACHE_LIMITS.length; i++) {
+            int limit = FnfOptions.CACHE_LIMITS[i];
+            if (limit == FnfOptions.cacheLimitMB) return i;
+            if (limit != 0 && Math.abs(limit - FnfOptions.cacheLimitMB) < Math.abs(FnfOptions.CACHE_LIMITS[best] - FnfOptions.cacheLimitMB)) best = i;
+        }
+        return best;
     }
 
     // 1536 -> "1.5 KB", 52428800 -> "50.0 MB"

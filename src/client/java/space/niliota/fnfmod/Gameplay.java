@@ -170,6 +170,10 @@ public class Gameplay {
                     lastHitTime[lane] = songPosition;
                     GameplayHud.showRating(hit.rating, judge.stats.combo);
                     ClientVs.queue(new VsEvent(VsEvent.HIT, hit.index, hit.rating.ordinal())); // the rival (VS) and anyone watching see it
+                } else if (!FnfOptions.ghostTapping) {
+                    // nothing to hit there and ghost tapping is off: a miss, like in Psych
+                    judge.missPress();
+                    ClientVs.queue(new VsEvent(VsEvent.MISS_PRESS, lane, 0));
                 }
             }
             held[lane] = keys[lane].isDown();

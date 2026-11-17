@@ -10,7 +10,8 @@ import java.util.List;
 // Doesn't know anything about Minecraft, the client feeds it key presses and the song's time every frame.
 //
 //  * A note can be hit from SAFE_ZONE ms before its time until SAFE_ZONE ms after it.
-//  * Pressing a key hits the earliest hittable note in that lane. Pressing with no note there does nothing (ghost tapping).
+//  * Pressing a key hits the earliest hittable note in that lane. Pressing with no note there does nothing (ghost tapping),
+//    unless ghost tapping is turned off: then the client calls missPress().
 //  * A note that gets more than SAFE_ZONE ms late without being hit is a miss.
 //  * Holds: see JudgedNote.
 public class NoteJudge {
@@ -146,6 +147,12 @@ public class NoteJudge {
         stats.hit(rating);
         removeDuplicates(n);
         return n;
+    }
+
+    // Pressed a key with no note to hit there, with ghost tapping off (Psych's noteMissPress -> noteMissCommon without a note):
+    // counts as a miss, but only takes half the health of a missed note. Also used for the rival's/watched player's ones.
+    public void missPress() {
+        stats.miss(PlayStats.PRESS_MISS_HEALTH);
     }
 
     public void applyMiss(int index) {

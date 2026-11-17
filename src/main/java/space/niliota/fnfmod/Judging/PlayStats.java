@@ -6,6 +6,7 @@ public class PlayStats {
     public static final double MAX_HEALTH = 2.0;
     public static final double HIT_HEALTH = 0.02;  // health gained per hit (Note.hitHealth)
     public static final double MISS_HEALTH = 0.1;  // health lost per miss (Note.missHealth)
+    public static final double PRESS_MISS_HEALTH = 0.05; // health lost for pressing with no note there, ghost tapping off (PlayState.pressMissDamage)
 
     public int score = 0;
     public int combo = 0;

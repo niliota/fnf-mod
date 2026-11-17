@@ -155,6 +155,7 @@ public class ClientVs {
                     }
                 }
                 case VsEvent.MISS -> rival.applyMiss(event.value());
+                case VsEvent.MISS_PRESS -> rival.missPress();
                 case VsEvent.HOLD_DROPPED -> rival.applyHoldDropped(event.value());
             }
         }
