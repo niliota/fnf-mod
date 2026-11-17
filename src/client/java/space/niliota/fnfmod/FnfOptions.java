@@ -19,10 +19,10 @@ public class FnfOptions {
     public static boolean noFail = false;       // health running out doesn't end the song
     public static boolean middleScroll = false; // player's strums in the middle of the screen
     public static boolean downscroll = false;   // strums at the bottom, notes come down from the top
-    public static boolean showOpponent = false; // show the opponent's strums and notes too
+    public static boolean showOpponent = true;  // show the opponent's strums and notes too
     public static boolean watchNearby = true;   // arrows above players playing near me (and their music)
     public static boolean truePov = false;      // VS on the opponent side: my strums (and me, with the FNF camera) on the left
-    public static boolean fnfCamera = false;    // switch to the side view camera while a song plays
+    public static boolean fnfCamera = true;     // switch to the side view camera while a song plays
     public static double cameraDistance = 5.5;  // blocks, see FnfCamera
     public static int audioOffset = 0;          // ms, higher = notes come later (for when the audio reaches you late, like Psych)
     public static double songVolume = 1;        // 0 to 1, every FNF song (mine and the ones nearby). Minecraft's Master slider counts too
