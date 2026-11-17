@@ -21,10 +21,11 @@ On a server, only the server needs the mods. When you pick a song, the server se
 - A proper 3, 2, 1, GO! before every song
 - **VS mode**: challenge someone with the mic and battle on the same song. You see their notes live, and the higher score wins
 - Walk up to someone playing and watch: their arrows float above their head, and you hear the song
-- Personal bests and a results screen after every song
-- Song menus with search and each mod's own icon
+- Personal bests and a results screen after every song. On servers, the server keeps them
+- A song browser with search, each mod's own icon and your best scores
+- Play your own songs on any server, even ones without the mod
 - An FNF camera that shows you from the side, like you're on stage
-- Downscroll, middle scroll, showing the opponent, no fail, audio offset and more
+- Ghost tapping toggle, downscroll, middle scroll, True POV, no fail, song volume, audio offset and more
 
 ## Getting started
 
