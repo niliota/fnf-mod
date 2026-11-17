@@ -67,10 +67,15 @@ public class Gameplay {
     public static boolean[] opponentHolding = new boolean[4];
     private static boolean[] lastHeld = new boolean[4]; // my keys last frame (VS sends when they change)
 
-    // True POV: when I play the opponent's side in VS, my strums go to the left (where the opponent stands) and the rival's
-    // to the right, so both players see the same stage. Not with middle scroll, there my strums are in the middle anyway.
+    // True POV: boyfriend is always on the right, like on the stage. So when I play the opponent's side in VS, I'm on the
+    // left: the FNF camera, the health bar and my strums. Both players see the same stage.
+    public static boolean truePovFlipped() {
+        return vs && !mySide && FnfOptions.truePov;
+    }
+
+    // my strums on the left (True POV). Not with middle scroll, there my strums are in the middle anyway.
     public static boolean sidesSwapped() {
-        return vs && !mySide && FnfOptions.truePov && !FnfOptions.middleScroll;
+        return truePovFlipped() && !FnfOptions.middleScroll;
     }
 
     // x of one of the player's lanes (0=left, 1=down, 2=up, 3=right)
@@ -165,6 +170,10 @@ public class Gameplay {
 
         for (int lane = 0; lane < 4; lane++) {
             while (keys[lane].consumeClick()) {
+                // Holding a key makes the keyboard repeat it (like holding a letter in a text box), and Minecraft counts
+                // every repeat as a press. Those aren't presses: they'd hit notes by holding, or be misses with ghost tapping off.
+                if (lastHeld[lane] && keys[lane].isDown()) continue;
+
                 JudgedNote hit = judge.press(lane, songPosition);
                 if (hit != null) {
                     lastHitTime[lane] = songPosition;

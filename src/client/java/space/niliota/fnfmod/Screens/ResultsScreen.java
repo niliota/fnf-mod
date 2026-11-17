@@ -2,7 +2,6 @@ package space.niliota.fnfmod.Screens;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import space.niliota.fnfmod.ClientSongCatalog;
@@ -55,34 +54,29 @@ public class ResultsScreen extends Screen {
 
     @Override
     protected void init() {
-        List<Button> buttons = new ArrayList<>();
+        // stacked on the right side of the screen, in the middle. The first one (Retry/Rematch) is the purple one.
+        int buttonWidth = 100;
+        int x = this.width - buttonWidth - margin();
+        int y = this.height / 2 - (3 * 24 - 4) / 2;
+        List<Ui.FlatButton> buttons = new ArrayList<>();
         if (rivalName != null) {
             // VS: challenge the same rival again (they still have to accept)
-            buttons.add(Button.builder(Component.literal("Rematch"), btn -> {
+            buttons.add(new Ui.FlatButton(x, y, buttonWidth, 20, "Rematch", () -> {
                 Minecraft.getInstance().player.connection.sendCommand("fnfvs challenge " + rivalName);
                 onClose();
-            }).build());
+            }).accent());
         } else {
             // play the same song again with the same files
-            Button retry = Button.builder(Component.literal("Retry"), btn -> {
+            Ui.FlatButton retry = new Ui.FlatButton(x, y, buttonWidth, 20, "Retry", () -> {
                 onClose();
                 ClientNetworking.retryLastSong();
-            }).build();
+            }).accent();
             retry.active = ClientNetworking.canRetry();
             buttons.add(retry);
         }
-        buttons.add(Button.builder(Component.literal("Songs"), btn -> openSongList()).build());
-        buttons.add(Button.builder(Component.literal("Close"), btn -> onClose()).build());
-
-        // stacked on the right side of the screen, in the middle
-        int buttonWidth = 100;
-        int x = this.width - buttonWidth - margin();
-        int y = this.height / 2 - (buttons.size() * 24 - 4) / 2;
-        for (Button button : buttons) {
-            button.setRectangle(buttonWidth, 20, x, y);
-            this.addRenderableWidget(button);
-            y += 24;
-        }
+        buttons.add(new Ui.FlatButton(x, y + 24, buttonWidth, 20, "Songs", this::openSongList));
+        buttons.add(new Ui.FlatButton(x, y + 48, buttonWidth, 20, "Close", this::onClose));
+        for (Ui.FlatButton button : buttons) this.addRenderableWidget(button);
     }
 
     // space between the screen's edge and the panel/buttons
@@ -90,16 +84,9 @@ public class ResultsScreen extends Screen {
         return Math.max(12, this.width / 12);
     }
 
-    // back to this song's pack (or the Mic menu if the pack isn't in the list anymore)
+    // back to the song browser, with this song picked
     private void openSongList() {
-        List<SongCatalogPayload.PackEntry> packs = ClientSongCatalog.packs;
-        for (int i = 0; i < packs.size(); i++) {
-            if (packs.get(i).name().equals(packName)) {
-                Minecraft.getInstance().setScreen(new SongSelectScreen(Component.literal(packName), i, packs.get(i).songs()));
-                return;
-            }
-        }
-        Minecraft.getInstance().setScreen(new PackSelectScreen(Component.empty()));
+        Minecraft.getInstance().setScreen(new PackSelectScreen(packName, songName));
     }
 
     private static final int PANEL_WIDTH = 230;
@@ -125,12 +112,13 @@ public class ResultsScreen extends Screen {
         int x = left + PADDING;
         int y = top + PADDING;
 
-        // dark see-through background, so the text is easy to read over the world
-        context.fill(left, top, left + width, top + contentHeight() + PADDING * 2, 0xA0000000);
+        // dark see-through panel, so the text is easy to read over the world, with a strip in the heading's color on top
+        Ui.panel(context, left, top, left + width, top + contentHeight() + PADDING * 2);
+        context.fill(left, top, left + width, top + 2, headingColor);
 
         drawScaled(context, heading, x, y, 1.5f, headingColor);
         y += 18;
-        context.drawString(this.font, songName + "  ·  " + FnfMenuScreen.chartLabel(chartFile, songName), x, y, 0xFF9A9A9A, false);
+        context.drawString(this.font, songName + "  ·  " + FnfMenuScreen.chartLabel(chartFile, songName), x, y, Ui.TEXT_DIM, false);
         y += LINE + 6;
 
         // the rating big, accuracy and FC next to it
@@ -138,7 +126,7 @@ public class ResultsScreen extends Screen {
         drawScaled(context, stats.ratingName(), x, y, 2f, 0xFFFFFFFF);
         int afterRating = x + this.font.width(stats.ratingName()) * 2 + 8;
         context.drawString(this.font, String.format(Locale.ROOT, "%.2f%%", stats.accuracy() * 100), afterRating, y + 1, 0xFFFFFFFF, true);
-        if (!fc.isEmpty()) context.drawString(this.font, fc, afterRating, y + 11, 0xFFFFDD33, true);
+        if (!fc.isEmpty()) context.drawString(this.font, fc, afterRating, y + 11, Ui.GOLD, true);
         y += 24 + 6;
 
         // label  value
@@ -160,17 +148,17 @@ public class ResultsScreen extends Screen {
 
         // personal best
         if (newBest) {
-            context.drawString(this.font, "NEW BEST!", x, y, 0xFFFFDD33, true);
+            context.drawString(this.font, "NEW BEST!", x, y, Ui.GOLD, true);
             if (previousBest != null) {
                 y += LINE;
                 context.drawString(this.font, String.format(Locale.ROOT, "Old best: %,d (%.2f%%)",
-                        previousBest.score(), previousBest.accuracy() * 100), x, y, 0xFF9A9A9A, false);
+                        previousBest.score(), previousBest.accuracy() * 100), x, y, Ui.TEXT_DIM, false);
             }
         } else if (previousBest != null) {
             context.drawString(this.font, String.format(Locale.ROOT, "Best: %,d (%.2f%%) %s",
-                    previousBest.score(), previousBest.accuracy() * 100, previousBest.fullCombo()).trim(), x, y, 0xFF9A9A9A, false);
+                    previousBest.score(), previousBest.accuracy() * 100, previousBest.fullCombo()).trim(), x, y, Ui.TEXT_DIM, false);
         } else {
-            context.drawString(this.font, "First clear!", x, y, 0xFF9A9A9A, false);
+            context.drawString(this.font, "First clear!", x, y, Ui.TEXT_DIM, false);
         }
         y += LINE;
 
@@ -186,7 +174,7 @@ public class ResultsScreen extends Screen {
 
     // "Score      123,456": grey label, value in line after it
     private void row(GuiGraphics context, int x, int y, String label, String value, int color) {
-        context.drawString(this.font, label, x, y, 0xFFAAAAAA, false);
+        context.drawString(this.font, label, x, y, Ui.TEXT_DIM, false);
         context.drawString(this.font, value, x + VALUE_X, y, color, true);
     }
 

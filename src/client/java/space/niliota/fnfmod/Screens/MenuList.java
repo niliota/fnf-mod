@@ -50,6 +50,17 @@ public class MenuList extends ObjectSelectionList<MenuList.Row> {
         return false;
     }
 
+    // a flat panel instead of Minecraft's darkened list background and its separator lines (same look as the song browser)
+    @Override
+    protected void renderListBackground(GuiGraphics context) {
+        int left = this.getRowLeft() - 6, right = left + getRowWidth() + 12;
+        Ui.panel(context, left, getY(), right, getBottom());
+    }
+
+    @Override
+    protected void renderListSeparators(GuiGraphics context) {
+    }
+
     public abstract static class Row extends ObjectSelectionList.Entry<Row> {
     }
 
@@ -80,7 +91,7 @@ public class MenuList extends ObjectSelectionList<MenuList.Row> {
         @Override
         public void render(GuiGraphics context, int index, int top, int left, int width, int height,
                            int mouseX, int mouseY, boolean hovering, float partialTick) {
-            if (hovering) context.fill(left - 2, top - 2, left + width - 2, top + height + 2, 0x30FFFFFF);
+            if (hovering) context.fill(left - 2, top - 2, left + width - 2, top + height + 2, Ui.HOVER);
 
             // the icon (64x64 texture drawn at 20x20), the text moves over to make room for it
             int textX = left + 4;

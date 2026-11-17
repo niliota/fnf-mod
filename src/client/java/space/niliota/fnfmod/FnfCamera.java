@@ -90,7 +90,7 @@ public class FnfCamera {
                     // far enough back to fit both, at least the chosen distance
                     double distance = Math.max(FnfOptions.cameraDistance, separation * 0.6 + 2);
                     // True POV on the opponent side: the camera looks from my right, so I'm on the left facing right
-                    return placeAround(level, entity, middle, facingRival, distance, Gameplay.sidesSwapped());
+                    return placeAround(level, entity, middle, facingRival, distance, Gameplay.truePovFlipped());
                 }
             }
         }

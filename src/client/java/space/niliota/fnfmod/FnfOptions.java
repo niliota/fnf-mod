@@ -25,7 +25,7 @@ public class FnfOptions {
     public static boolean downscroll = false;   // strums at the bottom, notes come down from the top
     public static boolean showOpponent = true;  // show the opponent's strums and notes too
     public static boolean watchNearby = true;   // arrows above players playing near me (and their music)
-    public static boolean truePov = false;      // VS on the opponent side: my strums (and me, with the FNF camera) on the left
+    public static boolean truePov = true;       // boyfriend always on the right: on the opponent side in VS, I'm on the left (strums, camera, health bar)
     public static boolean fnfCamera = true;     // switch to the side view camera while a song plays
     public static double cameraDistance = 5.5;  // blocks, see FnfCamera
     public static int audioOffset = 0;          // ms, higher = notes come later (for when the audio reaches you late, like Psych)
